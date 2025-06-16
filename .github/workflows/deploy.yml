@@ -1,0 +1,26 @@
+name: Deploy to SFTP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sftp-deploy:
+    name: Deploy Files via SFTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Upload Files via SCP (SFTP)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 165.22.116.85
+          username: root
+          key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          port: 22
+          source: .
+          target: /var/www/ukgovcomms
+          rm: true   # Clean the target directory before uploading

@@ -1,0 +1,62 @@
+Things to do
+============
+
+Meta:
+* Title
+* Menu
+* Footer (created by, contact, what else?)
+
+Main page:
+	* Work out what to do with the existing short and long docs
+	* Principles
+		* Post in healthy spaces (Bluesky not Twitter)
+		* Post often
+		* Delegate trust
+		* Surface the process - individual and aggrigate (see PlatformLand)
+		* Solicit and share feedback
+		* Video
+	* Sign form (just emails me)
+	* Bluesky (latest post containing #ukgovcomms plus link to new tab with search on hashtag) -- See below!!
+	
+Examples of good practice page
+	* GDS / DSIT newsletters
+	* MHCLG
+	* What else?
+
+Issues page?
+	* https://www.linkedin.com/pulse/building-review-apps-how-govuk-forms-improved-feedback-kelvin-gan-ris4e (because on LinkedIn)
+
+Video page
+	* Link to old GDS videos
+
+Data page (graph of posts from RSS (pick up to 4 from list?) - see my list of feeds) -- Terrance
+
+Signatories page
+
+404 page
+
++++
+Keep a separate list people we'd like sign?
+Rachel
+Labour Together?
+Jeni
+People in WhatsApp group
+Hilary Cottam
+People I follow on Bluesky
+Etc
++++
+
+# 1. Fetch the latest hashtag post
+response = GET("https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts",
+               params={"q": "#YourHashtag", "limit": 1})
+post = response.json()["posts"][0]
+post_uri = post["uri"]
+
+# 2. Retrieve oEmbed HTML
+oembed = GET("https://embed.bsky.app/oembed", params={"url": post_uri}).json()
+html_snippet = oembed["html"]
+
+# 3. Output the snippet for your site
+print(html_snippet)
+
+Bluesky app password! slq3-7nea-qgu6-gygv

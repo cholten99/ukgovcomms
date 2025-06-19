@@ -31,9 +31,7 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
-          shell: bash
           script: |
-            export PATH=/var/www/.venvs/ukgovcomms/bin:$PATH
             source /var/www/.venvs/ukgovcomms/bin/activate
             cd /var/www/ukgovcomms
             pip install --upgrade pip

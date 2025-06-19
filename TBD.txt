@@ -1,6 +1,9 @@
 Things to do
 ============
 
+Meta-meta:
+* Create a ukgovcomms Bluesky account and re-post things on there
+
 Meta:
 * Title
 * Menu

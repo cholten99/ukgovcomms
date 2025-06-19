@@ -1,4 +1,4 @@
-name: Deploy to SFTP
+name: Deploy to Server
 
 on:
   push:
@@ -6,21 +6,33 @@ on:
       - main
 
 jobs:
-  sftp-deploy:
-    name: Deploy Files via SFTP
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Upload Files via SCP (SFTP)
+      - name: Upload files via SFTP
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: 165.22.116.85
-          username: root
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
-          source: .
-          target: /var/www/ukgovcomms
-          rm: true   # Clean the target directory before uploading
+          source: "."
+          target: "/var/www/ukgovcomms"
+          rm: false
+
+      - name: Install dependencies on server via SSH
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /var/www/ukgovcomms
+            source .venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt

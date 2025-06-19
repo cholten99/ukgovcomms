@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Upload files via SFTP
@@ -22,9 +22,9 @@ jobs:
           port: 22
           source: "."
           target: "/var/www/ukgovcomms"
-          rm: false
+          rm: true
 
-      - name: Install dependencies on server via SSH
+      - name: Install Python dependencies via SSH
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.SFTP_HOST }}
@@ -32,7 +32,6 @@ jobs:
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /var/www/ukgovcomms
-            source .venv/bin/activate
+            source /var/www/.venvs/ukgovcomms/bin/activate
             pip install --upgrade pip
-            pip install -r requirements.txt
+            pip install -r /var/www/ukgovcomms/requirements.txt

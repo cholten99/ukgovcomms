@@ -1,13 +1,14 @@
-Things to do
-============
+{% extends "base.html" %}
 
-Meta-meta:
-* Create a ukgovcomms Bluesky account and re-post things on there
+{% block title %}TBD{% endblock %}
 
-Meta:
-* Title
-* Menu
-* Footer (created by, contact, what else?)
+{% block content %}
+    <h1>TBD page!</h1>
+
+<pre>
+Header:
+  * Size, colour and font for the "UK Gov Comms" at the top
+  * Rotating signatories!
 
 Main page:
 	* Work out what to do with the existing short and long docs
@@ -18,12 +19,14 @@ Main page:
 		* Surface the process - individual and aggrigate (see PlatformLand)
 		* Solicit and share feedback
 		* Video
+		* Transparency standards as part of the Service Standard
 	* Sign form (just emails me)
 	* Bluesky (latest post containing #ukgovcomms plus link to new tab with search on hashtag) -- See below!!
 	
-Examples of good practice page
+Best practice
 	* GDS / DSIT newsletters
 	* MHCLG
+	* RSS feed!
 	* What else?
 
 Issues page?
@@ -36,30 +39,17 @@ Data page (graph of posts from RSS (pick up to 4 from list?) - see my list of fe
 
 Signatories page
 
-404 page
-
 +++
 Keep a separate list people we'd like sign?
 Rachel
 Labour Together?
 Jeni
+CAMRi (University of Westminster)
 People in WhatsApp group
 Hilary Cottam
 People I follow on Bluesky
 Etc
 +++
-
-# 1. Fetch the latest hashtag post
-response = GET("https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts",
-               params={"q": "#YourHashtag", "limit": 1})
-post = response.json()["posts"][0]
-post_uri = post["uri"]
-
-# 2. Retrieve oEmbed HTML
-oembed = GET("https://embed.bsky.app/oembed", params={"url": post_uri}).json()
-html_snippet = oembed["html"]
-
-# 3. Output the snippet for your site
-print(html_snippet)
-
-Bluesky app password! slq3-7nea-qgu6-gygv
+    
+</pre>
+{% endblock %}

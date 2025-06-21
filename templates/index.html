@@ -1,21 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>UKGovComms</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>Welcome to UKGovComms</h1>
+{% extends "base.html" %}
 
-Bob bob bob...!
+{% block title %}Home - My Site{% endblock %}
 
-    <div id="rotating-message">
-	{# include 'rotating-block.html' #}
-    </div>
-
-    <div id="bluesky">
-        {# include 'bluesky-embed.html' #}
-    </div>
-</body>
-</html>
+{% block content %}
+    <h1>Welcome to the Home Page</h1>
+    <p>This is the main content of the homepage.</p>
+{% endblock %}

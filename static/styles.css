@@ -1,0 +1,78 @@
+/* ----- Reset default styles (optional but helpful) ----- */
+body {
+    margin: 0;
+    font-family: sans-serif;
+}
+
+/* ----- Bump off the left-hand-side slightly ----- */
+.page {
+    padding-left: 1.5em;  /* or try 2em / 20px if you prefer */
+}
+
+
+/* ----- Title and Logo ----- */
+.title-bar {
+    display: flex;
+    align-items: center;
+    padding: 1em;
+}
+
+.title-bar .logo {
+    height: 8rem;         /* Scales with font size / screen size */
+    width: auto;
+    max-width: 100%;      /* Prevents it from overflowing its container */
+    margin-right: 1em;
+}
+
+.site-title {
+    font-size: 2em;
+    margin: 0;
+}
+
+/* ----- Navigation Menu - including negative margins because of whole-page right bump ----- */
+nav {
+    background-color: #f0f0f0;
+    margin-left: -1.5em;   /* cancel out .page padding */
+    margin-right: -1.5em;
+    padding: 0.5em 1.5em;  /* restore inner padding */
+}
+
+.nav-inner {
+    padding: 0em 0.5em;
+}
+
+nav a {
+    margin-right: 1em;
+    text-decoration: none;
+    color: black;
+    padding: 0.3em 0.6em;
+    border-radius: 5px;
+}
+
+nav a:hover {
+    background-color: #ddd;
+}
+
+nav a.active {
+    background-color: lightblue;
+}
+
+/* ----- Page content area ----- */
+main {
+    padding: 1em;
+}
+
+/* ----- Footer - negative margins for same reason as above ----- */
+footer {
+    background-color: #f8f8f8;
+    margin-left: -1.5em;
+    margin-right: -1.5em;
+}
+
+.footer-inner {
+    padding: 0.5em 1.5em;
+    text-align: center;
+    font-size: 1em;
+    color: #666;
+}
+

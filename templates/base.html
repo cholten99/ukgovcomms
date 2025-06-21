@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}UK Gov Comms{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="page">
+      <header>
+          <div class="title-bar">
+              <img src="{{ url_for('static', filename='images/tower.png') }}" alt="Tower" class="logo">
+              <h1 class="site-title">UK Gov Comms</h1>
+          </div>
+          <nav>
+              <div class="nav-inner">
+                  <a href="{{ url_for('home') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
+                  <a href="{{ url_for('about') }}" class="{% if active_page == 'about' %}active{% endif %}">About</a>
+                  <a href="{{ url_for('contact') }}" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a>
+                  <a href="{{ url_for('tbd') }}" class="{% if active_page == 'tbd' %}active{% endif %}">TBD</a>
+              </div>
+          </nav>
+      </header>
+
+      <main>
+          {% block content %}{% endblock %}
+      </main>
+
+      <footer>
+          <div class="footer-inner">
+              <p>&copy; 2025 <a href="https://bowsy.co.uk/">David Durant</a>. </p>
+          </div>
+      </footer>
+
+    </div>
+</body>
+</html>

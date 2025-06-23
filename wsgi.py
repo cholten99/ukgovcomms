@@ -1,12 +1,12 @@
 import sys
 import os
 
-# Add the project directory and site-packages from the virtual environment
+# Add the project directory to the path
 sys.path.insert(0, '/var/www/ukgovcomms')
-sys.path.insert(0, '/var/www/.venvs/ukgovcomms/lib/python3.6/site-packages')  # adjust version if needed
 
-# Set environment variable so Flask knows where the app is
+# Set the environment variable Flask uses
 os.environ['FLASK_APP'] = 'app'
 
-# Import and expose the Flask application
+# Import and expose the Flask app
 from app import app as application
+

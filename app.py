@@ -58,14 +58,22 @@ def home():
                            signatures=signatures,
                            latest_post=latest_post)
 
-@app.route('/about')
-def about():
-    return render_template('about.html', active_page='about')
+@app.route('/bestpractice')
+def bestpractice():
+    return render_template('bestpractice.html', active_page='bestpractice')
 
-@app.route('/contact')
-def contact():
-    return render_template('contact.html', active_page='contact')
+@app.route('/video')
+def video():
+    return render_template('video.html', active_page='video')
+
+@app.route('/dataviz')
+def dataviz():
+    return render_template('dataviz.html', active_page='dataviz')
     
+@app.route('/signatories')
+def signatories():
+    return render_template('signatories.html', active_page='signatories')
+
 @app.route('/tbd')
 def tbd():
     return render_template('tbd.html', active_page='tbd')

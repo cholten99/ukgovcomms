@@ -55,7 +55,7 @@ h1, h2 {
     display: block;
 
     /* DEBUG */
-    border-left: 1px dashed red;
+    /* border-left: 1px dashed red; */
 }
 
 .rotator-label {
@@ -91,7 +91,7 @@ h1, h2 {
 /* ----- Navigation Menu ----- */
 nav {
     background-color: #f0f0f0;
-    margin-left: -1.5em;
+    margin-left: -2em;
     margin-right: -1.5em;
     padding: 0.5em 1.5em;
 }
@@ -100,7 +100,7 @@ nav {
     padding: 0em 0.5em;
 
     /* DEBUG */
-    border-left: 1px dashed red;
+    /* border-left: 1px dashed red; */
 }
 
 nav a {

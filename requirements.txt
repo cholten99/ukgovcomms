@@ -4,3 +4,5 @@ itsdangerous==2.0.1
 Jinja2==3.0.3
 MarkupSafe==2.0.1
 Werkzeug==2.0.3
+atproto==0.0.61
+python-dotenv==1.1.0

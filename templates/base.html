@@ -1,25 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}UK Gov Comms{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <meta charset="UTF-8">
+  <title>{% block title %}UK Gov Comms{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.ico') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="page">
+  <div class="page">
       <header>
-          <div class="title-bar">
-              <img src="{{ url_for('static', filename='images/tower.png') }}" alt="Tower" class="logo">
-              <h1 class="site-title">UK Gov Comms</h1>
-          </div>
-          <nav>
-              <div class="nav-inner">
-                  <a href="{{ url_for('home') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
-                  <a href="{{ url_for('about') }}" class="{% if active_page == 'about' %}active{% endif %}">About</a>
-                  <a href="{{ url_for('contact') }}" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a>
-                  <a href="{{ url_for('tbd') }}" class="{% if active_page == 'tbd' %}active{% endif %}">TBD</a>
+        <div class="title-bar">
+          <img src="{{ url_for('static', filename='images/tower.png') }}" alt="Tower" class="logo">
+          <h1 class="site-title">UK Gov Comms</h1>
+        </div>
+        
+      <div class="signature-rotator">
+          <div class="rotator-inner">
+              <div class="rotator-label">Principles signed by:</div>
+              <div class="rotator-values" id="rotator">
+                  {% for sig in signatures %}
+                      <span class="signature-item">{{sig }}</span>
+                  {% endfor %}
               </div>
-          </nav>
+          </div>
+      </div>
+
+        <nav>
+          <div class="nav-inner">
+              <a href="{{ url_for('home') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
+              <a href="{{ url_for('about') }}" class="{% if active_page == 'about' %}active{% endif %}">About</a>
+              <a href="{{ url_for('contact') }}" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a>
+              <a href="{{ url_for('tbd') }}" class="{% if active_page == 'tbd' %}active{% endif %}">TBD</a>
+              &nbsp;|&nbsp;
+              <a href="https://bsky.app/profile/ukgovcomms.bsky.social" target="_blank">Our Bluesky account</a>
+          </div>
+        </nav>
       </header>
 
       <main>
@@ -34,4 +50,7 @@
 
     </div>
 </body>
+
+<script src="{{ url_for('static', filename='signature-rotator.js') }}"></script>
+
 </html>

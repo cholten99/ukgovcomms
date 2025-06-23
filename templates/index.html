@@ -3,6 +3,25 @@
 {% block title %}Home - My Site{% endblock %}
 
 {% block content %}
-    <h1>Welcome to the Home Page</h1>
-    <p>This is the main content of the homepage.</p>
+  <h1>Welcome to the Home Page</h1>
+    
+  {% if latest_post %}
+    <div class="bluesky-embed">
+      <div class="bluesky-meta">
+          <img src="{{ latest_post.avatar }}" class="bluesky-avatar" alt="Avatar">
+          <div>
+              <strong>{{ latest_post.display_name }}</strong><br>
+              <span class="bluesky-handle">@{{ latest_post.handle }}</span>
+          </div>
+      </div>
+      <div class="bluesky-text">
+          {{ latest_post.text }}
+      </div>
+      <div class="bluesky-time">
+          {{ latest_post.timestamp }}
+      </div>
+    </div>
+  {% endif %}
+    
+  <p>This is the main content of the homepage.</p>
 {% endblock %}

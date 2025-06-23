@@ -13,6 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Create .env file from secrets
+        run: |
+          echo "BLUESKY_HANDLE=${{ secrets.BLUESKY_HANDLE }}" > .env
+          echo "BLUESKY_APP_PASSWORD=${{ secrets.BLUESKY_APP_PASSWORD }}" >> .env
+
       - name: Upload files via SFTP
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -36,3 +41,4 @@ jobs:
             cd /var/www/ukgovcomms
             pip install --upgrade pip
             pip install -r requirements.txt
+

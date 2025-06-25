@@ -17,6 +17,9 @@ jobs:
         run: |
           echo "BLUESKY_HANDLE=${{ secrets.BLUESKY_HANDLE }}" > .env
           echo "BLUESKY_APP_PASSWORD=${{ secrets.BLUESKY_APP_PASSWORD }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_USER=ukgovcomms_admin" >> .env
+          echo "DB_NAME=UKGovComms" >> .env
 
       - name: Upload files via SFTP
         uses: appleboy/scp-action@v0.1.7

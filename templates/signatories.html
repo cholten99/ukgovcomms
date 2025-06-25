@@ -1,8 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Contact{% endblock %}
-
 {% block content %}
-    <h1>Contact</h1>
-    <p>Here's how you can get in touch.</p>
+<h1>Signatories</h1>
+
+<ul>
+  {% for sig in signatories %}
+    <li>
+      {% if sig.url %}
+        <strong><a href="{{ sig.url }}" target="_blank" rel="noopener">{{ sig.name }}</a></strong>
+      {% else %}
+        <strong>{{ sig.name }}</strong>
+      {% endif %}
+      {% if sig.role %}
+        — {{ sig.role }}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
 {% endblock %}

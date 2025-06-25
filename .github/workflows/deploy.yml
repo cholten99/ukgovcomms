@@ -17,9 +17,10 @@ jobs:
         run: |
           echo "BLUESKY_HANDLE=${{ secrets.BLUESKY_HANDLE }}" > .env
           echo "BLUESKY_APP_PASSWORD=${{ secrets.BLUESKY_APP_PASSWORD }}" >> .env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DB_USER=ukgovcomms_admin" >> .env
-          echo "DB_NAME=UKGovComms" >> .env
 
       - name: Upload files via SFTP
         uses: appleboy/scp-action@v0.1.7
@@ -44,4 +45,14 @@ jobs:
             cd /var/www/ukgovcomms
             pip install --upgrade pip
             pip install -r requirements.txt
+
+      - name: Restart Gunicorn
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          port: 22
+          script: |
+            sudo systemctl restart gunicorn
 

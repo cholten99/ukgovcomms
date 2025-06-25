@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Admin Interface</h1>
+
+  <form method="get" action="{{ url_for('admin') }}">
+    <label for="table">Select a table:</label>
+    <select name="table" id="table">
+      {% for t in tables %}
+        <option value="{{ t }}" {% if t == selected_table %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Load</button>
+  </form>
+
+  {% if columns %}
+    <h2>Structure of table: {{ selected_table }}</h2>
+    <ul>
+      {% for column in columns %}
+        <li><strong>{{ column['Field'] }}</strong> ({{ column['Type'] }})</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}
+

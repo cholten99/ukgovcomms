@@ -54,5 +54,6 @@ jobs:
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
           script: |
-            sudo systemctl restart gunicorn
+            sudo systemctl daemon-reload
+            sudo systemctl restart ukgovcomms
 

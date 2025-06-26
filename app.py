@@ -110,7 +110,7 @@ def admin():
 
         # Get tables for dropdown
         cursor.execute("SHOW TABLES")
-        tables = [row[0] for row in cursor.fetchall()]
+        tables = [list(row.values())[0] for row in cursor.fetchall()]
 
         # Get column info for selected table
         if selected_table in tables:

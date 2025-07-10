@@ -4,24 +4,42 @@
 
 {% block content %}
   <h1>Welcome to the Home Page</h1>
-    
-  {% if latest_post %}
-    <div class="bluesky-embed">
-      <div class="bluesky-meta">
+
+  <div class="homepage-grid">
+    <div class="main-column">
+      <p>This is the main content of the homepage.</p>
+      <p>Reference to the upcoming IFG open letter.</p>
+      <p>A list of principles and a form to add your name to the signatories (just emails me).</p>
+    </div>
+
+    {% if latest_post %}
+    <div class="bluesky-column">
+      <div class="bluesky-embed">
+        <div class="bluesky-meta">
           <img src="{{ latest_post.avatar }}" class="bluesky-avatar" alt="Avatar">
           <div>
-              <strong>{{ latest_post.display_name }}</strong><br>
-              <span class="bluesky-handle">@{{ latest_post.handle }}</span>
+            <strong>{{ latest_post.display_name }}</strong><br>
+            <span class="bluesky-handle">@{{ latest_post.handle }}</span>
           </div>
+        </div>
+        <div class="bluesky-text">{{ latest_post.text }}</div>
+        <div class="bluesky-time">{{ latest_post.timestamp }}</div>
       </div>
-      <div class="bluesky-text">
-          {{ latest_post.text }}
+      {% endif %}
+      
+      <div class="signatory-form">
+        <h3>Become a signatory</h3>
+        <form method="post" action="mailto:dave@bowsy.co.uk?subject=Potential new UK Gov Comms signatory" enctype="text/plain">
+          <label for="name">Name:</label><br>
+          <input type="text" id="name" name="Name" required><br><br>
+
+          <label for="email">Email:</label><br>
+          <input type="email" id="email" name="Email" required><br><br>
+
+          <button type="submit">Submit</button>
+        </form>
       </div>
-      <div class="bluesky-time">
-          {{ latest_post.timestamp }}
-      </div>
+
     </div>
-  {% endif %}
-    
-  <p>This is the main content of the homepage.</p>
 {% endblock %}
+

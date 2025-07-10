@@ -78,9 +78,9 @@ def home():
 def bestpractice():
     return render_template('bestpractice.html', active_page='bestpractice')
 
-@app.route('/dataviz')
-def dataviz():
-    return render_template('dataviz.html', active_page='dataviz')
+@app.route('/datavis')
+def datavis():
+    return render_template('datavis.html', active_page='datavis')
 
 @app.route('/signatories')
 def signatories():

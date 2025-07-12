@@ -94,6 +94,10 @@ def signatories():
 def tbd():
     return render_template('tbd.html', active_page='tbd')
 
+@app.route('/thank-you')
+def thankyou():
+    return render_template('thankyou.html', active_page=None)
+
 @app.route('/silent-pebble-echo')
 def admin():
     selected_table = request.args.get('table')

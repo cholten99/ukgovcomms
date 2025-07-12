@@ -1,45 +1,51 @@
 {% extends "base.html" %}
 
-{% block title %}Home - My Site{% endblock %}
-
 {% block content %}
-  <h1>Welcome to the Home Page</h1>
+<div class="homepage-grid">
 
-  <div class="homepage-grid">
-    <div class="main-column">
-      <p>This is the main content of the homepage.</p>
-      <p>Reference to the upcoming IFG open letter.</p>
-      <p>A list of principles and a form to add your name to the signatories (just emails me).</p>
-    </div>
+  <div class="main-column">
+    <h2>Welcome to UK Gov Comms</h2>
+    <p>
+      We’re building a collection of best practice examples, resources, and links to improve how UK government communicates with the public.
+    </p>
+    <p>
+      This site is maintained by volunteers from across the public and civic sectors. If you work in UK public sector comms or digital and would like to contribute, get in touch.
+    </p>
+  </div>
 
+  <div class="bluesky-column">
     {% if latest_post %}
-    <div class="bluesky-column">
-      <div class="bluesky-embed">
-        <div class="bluesky-meta">
-          <img src="{{ latest_post.avatar }}" class="bluesky-avatar" alt="Avatar">
-          <div>
-            <strong>{{ latest_post.display_name }}</strong><br>
-            <span class="bluesky-handle">@{{ latest_post.handle }}</span>
-          </div>
+    <div class="bluesky-embed">
+      <div class="bluesky-meta">
+        <img src="{{ latest_post.avatar }}" alt="Avatar" class="bluesky-avatar">
+        <div>
+          <strong>{{ latest_post.display_name }}</strong><br>
+          <span class="bluesky-handle">@{{ latest_post.handle }}</span>
         </div>
-        <div class="bluesky-text">{{ latest_post.text }}</div>
-        <div class="bluesky-time">{{ latest_post.timestamp }}</div>
       </div>
-      {% endif %}
-      
-      <div class="signatory-form">
-        <h3>Become a signatory</h3>
-        <form method="post" action="mailto:dave@bowsy.co.uk?subject=Potential new UK Gov Comms signatory" enctype="text/plain">
-          <label for="name">Name:</label><br>
-          <input type="text" id="name" name="Name" required><br><br>
-
-          <label for="email">Email:</label><br>
-          <input type="email" id="email" name="Email" required><br><br>
-
-          <button type="submit">Submit</button>
-        </form>
-      </div>
-
+      <div class="bluesky-text">{{ latest_post.text }}</div>
+      <div class="bluesky-time">{{ latest_post.timestamp }}</div>
     </div>
+    {% endif %}
+
+    <div class="signatory-form">
+      <h3>Become a signatory</h3>
+      <form action="https://api.web3forms.com/submit" method="POST">
+        <input type="hidden" name="access_key" value="4b55caab-d67d-4c5c-b10a-e86d1d2ff93f">
+        <input type="hidden" name="subject" value="Potential new UK Gov Comms signatory">
+        <input type="hidden" name="redirect" value="{{ url_for('thankyou', _external=True) }}">
+
+        <label for="name">Name</label>
+        <input type="text" name="name" id="name" required>
+
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" required>
+
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+  </div>
+
+</div>
 {% endblock %}
 

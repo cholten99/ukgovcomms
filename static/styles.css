@@ -15,14 +15,27 @@ body {
 .title-bar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0.5em;
 }
 
-.title-bar .logo {
-    height: 8rem;
+.title-left {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    height: 10rem;
     width: auto;
     max-width: 100%;
     margin-right: 1em;
+}
+
+.openness-poster {
+    height: 10rem;
+    width: auto;
+    max-width: 100%;
+    margin-left: 1em;
 }
 
 .site-title {
@@ -144,25 +157,37 @@ main {
 
 /* ----- Form style ----- */
 .signatory-form {
-    margin-top: 2em;
-    padding: 1em;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    background-color: #f9f9f9;
+  margin-top: 2em;
+  padding: 1em;
+  background-color: #f7f7f7;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
 
 .signatory-form h3 {
-    margin-top: 0;
+  margin-top: 0;
 }
 
-.signatory-form input,
+.signatory-form input[type="text"],
+.signatory-form input[type="email"] {
+  width: 100%;
+  padding: 0.4em;
+  margin-bottom: 0.5em;
+  box-sizing: border-box;
+}
+
 .signatory-form button {
-    width: 100%;
-    padding: 0.5em;
-    margin-top: 0.25em;
-    box-sizing: border-box;
+  background-color: #005ea5;
+  color: white;
+  padding: 0.5em 1.2em;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
+.signatory-form button:hover {
+  background-color: #003f7d;
+}
 
 /* ----- Footer ----- */
 footer {

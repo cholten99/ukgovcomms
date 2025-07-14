@@ -2,8 +2,7 @@ import os
 import random
 import mysql.connector
 from dotenv import load_dotenv
-from flask import Flask, render_template, request
-
+from flask import Flask, render_template, request, redirect, url_for, make_response
 from atproto import Client
 
 app = Flask(__name__)
@@ -11,6 +10,7 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Load environment variables
 load_dotenv()
+PASSWORD = os.getenv("GATEKEEP_PASSWORD")
 BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
 BLUESKY_APP_PASSWORD = os.getenv("BLUESKY_APP_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
@@ -69,10 +69,26 @@ def inject_signatures():
 
 @app.route('/')
 def home():
+    if request.cookies.get("authenticated") != "true":
+        return redirect(url_for('gate'))
+
     latest_post = get_latest_post()
     return render_template('index.html',
                            active_page='home',
                            latest_post=latest_post)
+
+@app.route('/gate', methods=['GET', 'POST'])
+def gate():
+    error = None
+    if request.method == 'POST':
+        submitted = request.form.get('password')
+        if submitted == PASSWORD:
+            response = make_response(redirect(url_for('home')))
+            response.set_cookie("authenticated", "true", max_age=60*60*24*7)  # 1 week
+            return response
+        else:
+            error = "Incorrect password."
+    return render_template('gate.html', error=error)
 
 @app.route('/bestpractice')
 def bestpractice():

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Access Gate</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 5em auto; text-align: center; }
+    input[type="password"] { padding: 0.5em; font-size: 1.2em; width: 80%; }
+    button { padding: 0.5em 1em; font-size: 1em; }
+    .error { color: red; margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Enter Access Password</h1>
+  <form method="POST">
+    <input type="password" name="password" required>
+    <br><br>
+    <button type="submit">Enter</button>
+  </form>
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+</body>
+</html>
+

@@ -5,27 +5,45 @@
 
   <div class="main-column">
     <h2>Welcome to UK Gov Comms</h2>
-    <p>
-      We’re building a collection of best practice examples, resources, and links to improve how UK government communicates with the public.
-    </p>
-    <p>
-      This site is maintained by volunteers from across the public and civic sectors. If you work in UK public sector comms or digital and would like to contribute, get in touch.
-    </p>
+    <p>This site was created by volunteers from across the public and civic sectors. If you would like to contribute, potentially anonymously, get in touch by <a href="mailto:dave@bowsy.co.uk">emailing us</a>.</p>
+    <p>It has 4 purposes.</p>
+    <ul>
+      <li>To highlight the chilling effects of the recent unpublished government guidance to civil servants to "not speak at sector facing events with a Q&A" as referenced in a letter to the Times published on 14/7/25 and <a href="https://bsky.app/profile/drhannahwhite.bsky.social/post/3ltvmpr2y2s2h">detailed here</a>.
+      <li>To highlight instances of exemplary non-press office communication - see our <a href="/bestpractice">best practice page</a>.
+      <li>As a response to the reduction in frequency of UK government communications not issued via press offices - see our <a href="/datavis">data visualisation page</a>.
+      <li>To provide a set of government communication <b>principles</b> that any person or organisation can become a signatory to. 
+    </ul>
+    
+    <h2>Government Communication Principles</h2>
+    <p>The signatories on this website support the following principles.</p>
+    <ul>
+      <li><b>Default to openness.</b>Unless there’s a good reason not to, share your work in the open. Openness builds trust, prevents duplication, and helps others learn from your successes (and mistakes).
+      <li><b>Empower teams to speak.</b>Trust the people doing the work to talk about it. Let teams decide what to share, when to share it, and where to share it — without requiring central approval or sign-off.
+      <li><b>Communicate early, improve continuously.</b>Share progress from the start. Invite feedback and input while there's still time to act on it. Use communication as a tool for collaboration, not just reporting.  
+      <li><b>Choose healthy platforms.</b>Publish on platforms that support civil discourse, respect user rights, and aren't hostile to marginalised communities. Avoid spaces that reward outrage or amplify misinformation.
+      <li><b>Write for everyone.</b>Use plain English. Be clear, honest, and inclusive. Aim to be understood by the people your work affects — not just your peers or specialists.
+      <li><b>Use video to build trust.</b>Let people see and hear from the real humans doing the work as well as cheap-to-produce motion graphics. Video helps explain complex things simply, and builds confidence in the people behind public services.
+      <li><b>Don’t chase the algorithm.</b>Optimise for usefulness, not reach. Engagement numbers mean little if the right people aren't being informed or helped.
+      <li><b>Own your mistakes.</b>If something goes wrong, say so. Share what happened, what you're doing about it, and what you've learned. People respect honesty more than perfection.
+      <li><b>Make it easy to get involved.</b>Every post should help people do something: give feedback, join in, ask a question, try a prototype, share an idea, or just say hello.
+    </ul>
   </div>
 
   <div class="bluesky-column">
     {% if latest_post %}
-    <div class="bluesky-embed">
-      <div class="bluesky-meta">
-        <img src="{{ latest_post.avatar }}" alt="Avatar" class="bluesky-avatar">
-        <div>
-          <strong>{{ latest_post.display_name }}</strong><br>
-          <span class="bluesky-handle">@{{ latest_post.handle }}</span>
+      <a href="https://bsky.app/profile/{{ latest_post.handle }}/post/{{ latest_post.uri.split('/')[-1] }}" target="_blank" style="text-decoration: none; color: inherit;">
+        <div class="bluesky-embed">
+          <div class="bluesky-meta">
+            <img src="{{ latest_post.avatar }}" alt="Avatar" class="bluesky-avatar">
+            <div>
+              <div class="bluesky-display">{{ latest_post.display_name }}</div>
+              <div class="bluesky-handle">@{{ latest_post.handle }}</div>
+            </div>
+          </div>
+          <div class="bluesky-text">{{ latest_post.text }}</div>
+          <div class="bluesky-time">{{ latest_post.timestamp }}</div>
         </div>
-      </div>
-      <div class="bluesky-text">{{ latest_post.text }}</div>
-      <div class="bluesky-time">{{ latest_post.timestamp }}</div>
-    </div>
+      </a>
     {% endif %}
 
     <div class="signatory-form">

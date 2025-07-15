@@ -35,6 +35,7 @@ def get_latest_post():
             'avatar': author.avatar,
             'text': record.text,
             'timestamp': record.created_at,
+            'uri': post_view.uri  # 👈 Add this
         }
     except Exception as e:
         print(f"Error fetching Bluesky post: {e}")

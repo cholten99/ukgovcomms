@@ -240,3 +240,22 @@ footer {
     color: #999;
 }
 
+/* ----- Best practice page ----- */
+.bestpractice-left {
+  flex: 1;
+  min-width: 250px;
+}
+
+.bestpractice-right {
+  flex: 2;
+  min-width: 60%;
+}
+
+/* ----- Admin page ----- */
+.search-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 1em 0;
+}
+

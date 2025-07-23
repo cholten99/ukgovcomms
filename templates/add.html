@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Add New Record to {{ table }}</h1>
+
+<form method="post" class="signatory-form">
+  {% for column in columns %}
+    <label for="{{ column }}">{{ column }}</label>
+    <input type="text" name="{{ column }}" id="{{ column }}">
+  {% endfor %}
+  <button type="submit">Add Record</button>
+  <a href="{{ url_for('admin', table=table) }}" style="margin-left: 1em;">Cancel</a>
+</form>
+{% endblock %}
+

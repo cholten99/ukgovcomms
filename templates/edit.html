@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Edit Record in {{ table }}</h1>
+
+<form method="post" class="signatory-form">
+  {% for column in columns %}
+    {% if column != 'id' %}
+      <label for="{{ column }}">{{ column }}</label>
+      <input type="text" name="{{ column }}" id="{{ column }}" value="{{ row[column] or '' }}">
+    {% else %}
+      <input type="hidden" name="id" value="{{ row[column] }}">
+    {% endif %}
+  {% endfor %}
+  <button type="submit">Save Changes</button>
+  <a href="{{ url_for('admin', table=table) }}" style="margin-left: 1em;">Cancel</a>
+</form>
+{% endblock %}
+

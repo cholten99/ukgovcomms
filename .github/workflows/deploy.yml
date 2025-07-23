@@ -21,7 +21,8 @@ jobs:
           echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
           echo "DB_USER=${{ secrets.DB_USER }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "GATEKEEP_PASSWORD=${{ secrets.GATEKEEP_PASSWORD }}" >> .env  # <-- add this line
+          echo "GATEKEEP_PASSWORD=${{ secrets.GATEKEEP_PASSWORD }}" >> .env
+          echo "FLASK_SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}" >> .env
 
       - name: Upload files via SFTP
         uses: appleboy/scp-action@v0.1.7

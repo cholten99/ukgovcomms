@@ -241,14 +241,30 @@ footer {
 }
 
 /* ----- Best practice page ----- */
-.bestpractice-left {
-  flex: 1;
-  min-width: 250px;
+.bestpractice-list {
+    list-style-type: disc;
+    padding-left: 2em;
 }
 
-.bestpractice-right {
-  flex: 2;
-  min-width: 60%;
+.bestpractice-list li {
+    margin-bottom: 1em;
+}
+
+.bestpractice-list a {
+    font-weight: bold;
+    color: #330066;
+    text-decoration: none;
+}
+
+.bestpractice-list a:hover {
+    text-decoration: underline;
+}
+
+.bestpractice-subinfo {
+    margin-left: 1em;
+    color: #555;
+    font-size: 0.95em;
+    font-style: italic;
 }
 
 /* ----- Admin page ----- */

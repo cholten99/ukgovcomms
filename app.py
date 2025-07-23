@@ -97,61 +97,37 @@ def gate():
 
 @app.route('/bestpractice')
 def bestpractice():
-    # Get query params
-    search = request.args.get('search') or ''
-    type_filter = request.args.get('type') or ''
-    selected_id = request.args.get('id')
+    search = request.args.get('search', '').strip()
+    type_filter = request.args.get('type', '').strip()
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Get all distinct types for dropdown
-    cursor.execute("SELECT DISTINCT type FROM BestPractice ORDER BY type")
-    types = [row['type'] for row in cursor.fetchall() if row['type']]
+    # Get distinct types for the dropdown
+    cursor.execute("SELECT DISTINCT Type FROM BestPractice WHERE Type IS NOT NULL ORDER BY Type")
+    types = [row['Type'] for row in cursor.fetchall()]
 
-    # Build the filtered results query
-    query = "SELECT id, title FROM BestPractice WHERE 1=1"
+    query = "SELECT id, Title, Type, Description, URL FROM BestPractice WHERE 1=1"
     params = []
 
     if search:
-        query += " AND (LOWER(title) LIKE %s OR LOWER(description) LIKE %s)"
-        params += [f"%{search.lower()}%"] * 2
+        query += " AND (Title LIKE %s OR Description LIKE %s)"
+        like = f"%{search}%"
+        params.extend([like, like])
 
-    if type_filter.strip().lower() not in ('', 'any'):
-        query += " AND type = %s"
+    if type_filter and type_filter.lower() != "any":
+        query += " AND Type = %s"
         params.append(type_filter)
 
-    query += " ORDER BY title"
     cursor.execute(query, params)
     results = cursor.fetchall()
 
-    # Try to fetch selected item (with aliased keys)
-    selected = None
-    if selected_id:
-        print(f"Selected ID from query string: {selected_id}")
-        try:
-            cursor.execute("""
-                SELECT
-                    id,
-                    Title AS title,
-                    Type AS type,
-                    Description AS description,
-                    URL AS url
-                FROM BestPractice
-                WHERE id = %s
-            """, (selected_id,))
-            selected = cursor.fetchone()
-            print("Selected record:", selected)
-        except Exception as e:
-            print(f"Error fetching selected record: {e}")
-
+    cursor.close()
     conn.close()
 
     return render_template(
         'bestpractice.html',
-        active_page='bestpractice',
         results=results,
-        selected=selected,
         search=search,
         type_filter=type_filter,
         types=types

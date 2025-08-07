@@ -1,14 +1,11 @@
-{% extends "base.html" %}
-
-{% block title %}TBD{% endblock %}
-
-{% block content %}
-    <h1>TBD page!</h1>
-
-<pre>
+{% extends "base.html" %} {% block title %}TBD{% endblock %} {% block content %}
+TBD page!
 Misc:
   * Work out what to do with the existing short and long docs
-
+    * https://docs.google.com/document/d/1LaFvMcmeZXF1UYB2zyrxHb9vqNvOIszr3jvgQ9BtG2o/edit?tab=t.0
+    * https://docs.google.com/document/d/1H44L9f1W1L1LxRfQCjmU-4bhIrkB8wFIUFiz6q8Qzpo/edit?tab=t.0#heading=h.fd1ee24vkpky
+    * https://docs.google.com/document/d/1YAeGJKMv0yjWc-9RTdW5rbdJjN3Vj5VYvDgtf0X5m6w/edit?tab=t.0#heading=h.lo0bskkt6vdr
+  * Remember Liz’s friend in GDS Comms! 
 Some URLs to go through:
   * https://bsky.app/profile/drhannahwhite.bsky.social/post/3ltvmpr2y2s2h
   * https://bsky.app/profile/alexgathomas.bsky.social/post/3ltuf5kpty22z
@@ -18,7 +15,7 @@ Some URLs to go through:
   * https://www.linkedin.com/posts/policy-lab-uk_civilservice-ukcivilservice-government-activity-7343930321999921153-SQ4Z/
   * https://hodigital.blog.gov.uk/2025/07/09/launching-the-home-office-2030-digital-strategy/
 	
-Best practice exanples:
+Best practice examples:
   * GDS / DSIT newsletters
   * https://www.youtube.com/@govuk/shorts !!
   * RSS feed on main page
@@ -36,12 +33,12 @@ Best practice exanples:
   * https://benholliday.com/2025/07/12/new-ways-of-organising/
   * https://publicpolicydesign.blog.gov.uk/2025/07/14/join-our-first-global-public-design-conference/
   * https://www.gov.uk/government/publications/7-lenses-of-transformation/the-7-lenses-of-transformation
-
+ 
 Worst practice?
   * https://www.gov.uk/government/consultations/digital-justice-system-inclusion-framework-and-pre-action-model
-
+ 
 Data page (graph of posts from RSS (pick up to 4 from list?) - see my list of feeds) -- Terrance
-
+ 
 +++
 ASK PEOPLE WHO WE SHOULD GET TO SIGN ON THE FRONT PAGE!
 Keep a separate list people we'd like sign?
@@ -58,5 +55,4 @@ Think tanks (Demos, IfG, etc)
 Etc
 +++
     
-</pre>
-{% endblock %}
+{% endblock %} 

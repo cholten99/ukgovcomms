@@ -1,11 +1,17 @@
 {% extends "base.html" %} {% block title %}TBD{% endblock %} {% block content %}
 TBD page!
 Misc:
+  * !! https://gavin-freeguard.medium.com/no-10-bans-civil-servants-from-speaking-bans-us-from-seeing-the-guidance-that-bans-civil-servants-47df9304218e
   * Work out what to do with the existing short and long docs
     * https://docs.google.com/document/d/1LaFvMcmeZXF1UYB2zyrxHb9vqNvOIszr3jvgQ9BtG2o/edit?tab=t.0
     * https://docs.google.com/document/d/1H44L9f1W1L1LxRfQCjmU-4bhIrkB8wFIUFiz6q8Qzpo/edit?tab=t.0#heading=h.fd1ee24vkpky
     * https://docs.google.com/document/d/1YAeGJKMv0yjWc-9RTdW5rbdJjN3Vj5VYvDgtf0X5m6w/edit?tab=t.0#heading=h.lo0bskkt6vdr
   * Remember Liz’s friend in GDS Comms! 
+  * Things to go through from Giles:
+    * https://gilest.org/doingopen/?mc_cid=1e604cbd0b&mc_eid=9aca2c4826
+    * https://public.digital/test-and-learn/working-in-the-open-why-showing-your-working-out-matters-for-test-and-learn?mc_cid=1e604cbd0b&mc_eid=9aca2c4826
+    * https://gilest.org/notes/open-test-learn.html?mc_cid=1e604cbd0b&mc_eid=9aca2c4826
+
 Some URLs to go through:
   * https://bsky.app/profile/drhannahwhite.bsky.social/post/3ltvmpr2y2s2h
   * https://bsky.app/profile/alexgathomas.bsky.social/post/3ltuf5kpty22z

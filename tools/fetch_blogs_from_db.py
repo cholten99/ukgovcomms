@@ -1,376 +1,521 @@
 #!/usr/bin/env python3
 """
-Fetch GOV.UK blog posts for all sources listed in the Source table.
+Crawl enabled Blog sources from the DB and upsert posts into BlogPost.
 
-Behavior:
-- Selects Source rows where kind='Blog' AND is_enabled=1 AND (last_checked is NULL OR DATE(last_checked)<CURDATE()).
-- Unless --force is provided (then it ignores last_checked).
-- For each blog: start at latest post, walk "previous" links until a known URL is found (incremental),
-  or until no more previous posts (first run).
-- Upserts into BlogPost (UNIQUE url).
-- Updates Source.last_checked / last_success and summary (first_post_date, last_post_date, total_posts).
-- Logs to a daily rotating file (keeps 5 days). No console output.
+Features
+- Skips sources already checked today unless --force or --only-host is used
+- Starts from latest post auto-discovered from homepage
+  * If homepage parsing fails, falls back to feed (/feed/ or <link rel="alternate">)
+  * Then falls back to WordPress JSON (/wp-json/wp/v2/posts?per_page=1)
+- NEW: --start-url lets you override the starting post URL for a target host
+- Follows "previous" links back in time until it reaches already-stored posts
+- Upserts each post (by unique URL) and updates Source summaries
 
-Usage:
+Usage
   python3 tools/fetch_blogs_from_db.py --log-level INFO
-  python3 tools/fetch_blogs_from_db.py --force --only-host gds.blog.gov.uk --max-posts-per-blog 500
+  python3 tools/fetch_blogs_from_db.py --only-host gds.blog.gov.uk --force --log-level DEBUG
+  python3 tools/fetch_blogs_from_db.py --only-host nda.blog.gov.uk --start-url https://nda.blog.gov.uk/2025/07/25/some-post/
 
-Requirements:
-  requests, beautifulsoup4, PyMySQL
+Requires
+  - .env with DB_HOST, DB_NAME, DB_USER, DB_PASSWORD
+  - Tables: Source(kind='Blog'), BlogPost with at least:
+      url (UNIQUE), title, blog_name, published_at DATETIME NULL,
+      previous_url, next_url, created_at, updated_at
 """
 
+from __future__ import annotations
+
 import os
+import re
 import sys
 import time
-import re
-import logging
 import argparse
+import logging
 from logging.handlers import TimedRotatingFileHandler
-from urllib.parse import urlparse, urljoin
-from datetime import datetime
-from typing import Optional, List, Tuple
+from datetime import datetime, date, timedelta
+from typing import Optional, Tuple
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
 import pymysql
+import xml.etree.ElementTree as ET
 
-# ---------- Config ----------
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; UKGovCommsFetcher/1.0)"}
-POST_URL_REGEX = re.compile(r"^https://[a-z0-9\-]+\.blog\.gov\.uk/\d{4}/\d{2}/\d{2}/", re.IGNORECASE)
+# ------------- Config -------------
 
-# ---------- Logging ----------
+LOG_DIR = "logs"
+LOG_FILE = os.path.join(LOG_DIR, "fetch_blogs.log")
+USER_AGENT = "ukgovcomms-bot/1.0 (+contact: admin@localhost)"
 
-def setup_logging(log_dir: str, level: str) -> None:
-    os.makedirs(log_dir, exist_ok=True)
+REQUEST_TIMEOUT = 20
+BACKOFF_SLEEP = 5           # seconds for 429/5xx
+MAX_RETRIES = 3
+
+DEFAULT_SLEEP_BETWEEN = 0.5  # polite pause between HTTP requests
+
+
+# ------------- Utils -------------
+
+def load_env(path: str = ".env"):
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            if "=" in line and not line.strip().startswith("#"):
+                k, v = line.strip().split("=", 1)
+                os.environ.setdefault(k, v)
+
+
+def setup_logging(level: str):
+    os.makedirs(LOG_DIR, exist_ok=True)
     logger = logging.getLogger()
+    logger.handlers.clear()
     logger.setLevel(getattr(logging, level.upper(), logging.INFO))
 
     # File-only logging, rotate nightly, keep 5 days
-    fh = TimedRotatingFileHandler(
-        filename=os.path.join(log_dir, "fetch_blogs.log"),
-        when="midnight",
-        backupCount=5,
-        encoding="utf-8"
-    )
-    fh.setLevel(getattr(logging, level.upper(), logging.INFO))
-    fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    fh = TimedRotatingFileHandler(LOG_FILE, when="midnight", backupCount=5, encoding="utf-8")
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    fh.setFormatter(fmt)
     logger.addHandler(fh)
 
-# ---------- Env / DB ----------
 
-def load_env(env_path: str = ".env") -> None:
-    if not os.path.exists(env_path):
-        return
-    with open(env_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
-
-def db_connect():
+def get_db():
     host = os.environ.get("DB_HOST", "localhost")
     name = os.environ.get("DB_NAME", "UKGovComms")
     user = os.environ.get("DB_USER")
     pwd  = os.environ.get("DB_PASSWORD")
     if not (user and pwd):
-        raise RuntimeError("DB_USER/DB_PASSWORD not set in .env")
+        raise RuntimeError("DB_USER/DB_PASSWORD missing in environment (.env)")
     return pymysql.connect(host=host, user=user, password=pwd, database=name, charset="utf8mb4", autocommit=False)
 
-# ---------- HTTP fetch with backoff ----------
 
-def fetch(url: str, session: requests.Session, max_retries: int = 5, backoff_base: float = 1.7, timeout: int = 25) -> Tuple[str, Optional[int]]:
-    """
-    GET a URL with exponential backoff on 429 and 5xx responses.
-    Returns (text, status_code).
-    """
-    last_status: Optional[int] = None
-    for attempt in range(1, max_retries + 1):
-        try:
-            resp = session.get(url, headers=HEADERS, timeout=timeout)
-            last_status = resp.status_code
-            if resp.status_code == 429 or 500 <= resp.status_code < 600:
-                wait = backoff_base ** attempt
-                logging.warning("Got %s from %s. Backing off %.1fs (attempt %d/%d).",
-                                resp.status_code, url, wait, attempt, max_retries)
-                time.sleep(wait)
-                continue
-            resp.raise_for_status()
-            return resp.text, last_status
-        except requests.RequestException as e:
-            if attempt == max_retries:
-                logging.error("Failed to fetch %s after %d attempts: %s", url, attempt, e)
-                raise
-            wait = backoff_base ** attempt
-            logging.warning("Error fetching %s: %s. Retrying in %.1fs (attempt %d/%d).",
-                            url, e, wait, attempt, max_retries)
-            time.sleep(wait)
-    raise RuntimeError("Unreachable")
+def http_get(session: requests.Session, url: str) -> requests.Response:
+    """GET with basic retry/backoff on 429/5xx."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        resp = session.get(url, timeout=REQUEST_TIMEOUT)
+        if resp.status_code in (429, 500, 502, 503, 504):
+            logging.warning("HTTP %s on %s (attempt %d/%d); backing off %ss",
+                            resp.status_code, url, attempt, MAX_RETRIES, BACKOFF_SLEEP)
+            time.sleep(BACKOFF_SLEEP)
+            continue
+        resp.raise_for_status()
+        return resp
+    resp.raise_for_status()  # will raise the last status error
 
-# ---------- Scraping helpers ----------
 
-def find_latest_post_url(home_html: str) -> str:
-    soup = BeautifulSoup(home_html, "html.parser")
-    # Prefer obvious permalinks by regex
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        if POST_URL_REGEX.match(href):
-            return href
-    # Fallback: first article h2 a
-    a = soup.select_one("article h2 a[href]")
-    if a and POST_URL_REGEX.match(a["href"]):
-        return a["href"]
-    raise ValueError("Could not locate latest post URL on homepage.")
+def normalize_url(base_url: str, href: str) -> Optional[str]:
+    if not href:
+        return None
+    href = href.strip()
+    if href.startswith("#"):
+        return None
+    if href.startswith(("http://", "https://")):
+        return href
+    return urljoin(base_url, href)
 
-def extract_title_and_date(post_html: str) -> Tuple[str, Optional[str]]:
-    soup = BeautifulSoup(post_html, "html.parser")
-    title: Optional[str] = None
-    for sel in ["article h1", ".entry-title", "h1.entry-title", "h1"]:
-        el = soup.select_one(sel)
-        if el and el.get_text(strip=True):
-            title = el.get_text(strip=True)
-            break
-
-    pub_date: Optional[str] = None
-    t = soup.select_one("time[datetime]")
-    if t and t.get("datetime"):
-        pub_date = t["datetime"].strip()[:10]
-    if not pub_date:
-        meta = soup.find("meta", attrs={"property": "article:published_time"})
-        if meta and meta.get("content"):
-            pub_date = meta["content"].strip()[:10]
-    if not pub_date and t and t.get_text(strip=True):
-        m = re.search(r"\d{4}-\d{2}-\d{2}", t.get_text())
-        if m:
-            pub_date = m.group(0)
-
-    return (title or ""), pub_date
-
-def find_prev_next_urls(post_html: str, current_url: str) -> Tuple[Optional[str], Optional[str]]:
-    soup = BeautifulSoup(post_html, "html.parser")
-    prev_url: Optional[str] = None
-    next_url: Optional[str] = None
-
-    rel_prev = soup.find("a", rel=lambda v: v and ("prev" in v or "previous" in v))
-    if rel_prev and rel_prev.get("href"):
-        prev_url = urljoin(current_url, rel_prev["href"].strip())
-    rel_next = soup.find("a", rel=lambda v: v and "next" in v)
-    if rel_next and rel_next.get("href"):
-        next_url = urljoin(current_url, rel_next["href"].strip())
-
-    if not prev_url:
-        for a in soup.find_all("a", href=True):
-            txt = (a.get_text() or "").strip()
-            if txt.startswith("←") or txt.startswith("\u2190"):
-                prev_url = urljoin(current_url, a["href"].strip()); break
-    if not next_url:
-        for a in soup.find_all("a", href=True):
-            txt = (a.get_text() or "").strip()
-            if txt.endswith("→") or txt.endswith("\u2192"):
-                next_url = urljoin(current_url, a["href"].strip()); break
-
-    if not prev_url:
-        cand = soup.select_one(".nav-previous a, .previous a, a.previous, a.nav-previous")
-        if cand and cand.get("href"):
-            prev_url = urljoin(current_url, cand["href"].strip())
-    if not next_url:
-        cand = soup.select_one(".nav-next a, .next a, a.next, a.nav-next")
-        if cand and cand.get("href"):
-            next_url = urljoin(current_url, cand["href"].strip())
-
-    # Sanity: accept only canonical post permalinks
-    if prev_url and not POST_URL_REGEX.match(prev_url): prev_url = None
-    if next_url and not POST_URL_REGEX.match(next_url): next_url = None
-    return prev_url, next_url
-
-# ---------- DB helpers ----------
 
 def host_from_url(url: str) -> str:
-    return (urlparse(url).hostname or "").lower()
+    return url.split("//", 1)[-1].split("/", 1)[0].lower()
 
-def blogpost_exists(conn, url: str) -> bool:
-    with conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM BlogPost WHERE url=%s LIMIT 1", (url,))
-        return cur.fetchone() is not None
 
-def upsert_blogpost(conn, blog_name: str, url: str, title: str,
-                    published_at: Optional[str], previous_url: Optional[str], next_url: Optional[str]) -> None:
-    with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO BlogPost (blog_name, url, title, published_at, previous_url, next_url)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-              blog_name=VALUES(blog_name),
-              title=VALUES(title),
-              published_at=VALUES(published_at),
-              previous_url=VALUES(previous_url),
-              next_url=VALUES(next_url),
-              updated_at=CURRENT_TIMESTAMP
-        """, (blog_name, url, title, published_at, previous_url, next_url))
-    conn.commit()
+# ------------- Feed fallback helpers -------------
 
-def update_source_check(conn, source_id: int, ok: bool, status_code: Optional[int]) -> None:
-    with conn.cursor() as cur:
-        if ok:
-            cur.execute("""
-                UPDATE Source SET last_checked=NOW(), last_success=NOW(), status_code=%s
-                WHERE id=%s
-            """, (status_code or 200, source_id))
-        else:
-            cur.execute("""
-                UPDATE Source SET last_checked=NOW(), status_code=%s
-                WHERE id=%s
-            """, (status_code or 0, source_id))
-    conn.commit()
+def discover_feed_url(home_html: str, home_url: str) -> str:
+    """Find an RSS/Atom link in <head>; else guess /feed/ (WordPress default)."""
+    try:
+        soup = BeautifulSoup(home_html, "html.parser")
+        for link in soup.find_all("link", rel=lambda v: v and "alternate" in v):
+            t = (link.get("type") or "").lower()
+            if any(x in t for x in ("rss", "atom", "xml")):
+                href = link.get("href")
+                if href:
+                    u = normalize_url(home_url, href)
+                    if u:
+                        return u
+    except Exception:
+        pass
+    return urljoin(home_url, "/feed/")
 
-def update_source_summary_for_host(conn, source_id: int, host: str) -> None:
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT MIN(published_at), MAX(published_at), COUNT(*)
-            FROM BlogPost
-            WHERE url LIKE CONCAT('https://', %s, '/%%')
-        """, (host,))
-        first_date, last_date, total = cur.fetchone()
-        cur.execute("""
-            UPDATE Source
-            SET first_post_date=%s, last_post_date=%s, total_posts=%s, updated_at=NOW()
-            WHERE id=%s
-        """, (first_date, last_date, total or 0, source_id))
-    conn.commit()
 
-def select_sources(conn, force: bool, only_hosts: Optional[List[str]]):
-    where = ["kind='Blog'", "is_enabled=1"]
-    params: List[str] = []
-    if not force:
-        where.append("(last_checked IS NULL OR DATE(last_checked) < CURDATE())")
-    if only_hosts:
-        where.append("SUBSTRING_INDEX(SUBSTRING_INDEX(url,'/',3),'/',-1) IN (" + ",".join(["%s"]*len(only_hosts)) + ")")
-        params.extend([h.lower() for h in only_hosts])
-    sql = f"""
-        SELECT id, name, url
-        FROM Source
-        WHERE {' AND '.join(where)}
-        ORDER BY name
+def feed_latest_entry_link(feed_xml: str) -> Optional[str]:
+    """Return newest item link from an RSS or Atom feed (very tolerant)."""
+    try:
+        root = ET.fromstring(feed_xml)
+
+        # RSS 2.0
+        channel = root.find("./channel")
+        if channel is not None:
+            item = channel.find("./item")
+            if item is not None:
+                link = item.findtext("link")
+                if link and link.strip():
+                    return link.strip()
+
+        # Atom
+        for entry in root.iter():
+            if entry.tag.endswith("entry"):
+                for child in entry:
+                    if child.tag.endswith("link"):
+                        href = child.attrib.get("href")
+                        rel = child.attrib.get("rel", "alternate")
+                        if href and (rel == "alternate" or not rel):
+                            return href
+                break
+    except Exception:
+        pass
+    return None
+
+
+# ------------- Post parsing -------------
+
+TITLE_SELECTORS = [
+    "h1.entry-title",
+    "article h1",
+    "header h1",
+    "h1",
+]
+
+DATE_META_SELECTORS = [
+    # OpenGraph / schema
+    ("meta[property='article:published_time']", "content"),
+    ("meta[name='pubdate']", "content"),
+    ("time[datetime]", "datetime"),
+]
+
+PREV_LINK_SELECTORS = [
+    "a[rel='prev']",
+    "nav.post-navigation a[rel='prev']",
+    ".post-navigation .nav-previous a",
+    "a.previous-post",
+    "a.prev-post",
+]
+
+NEXT_LINK_SELECTORS = [
+    "a[rel='next']",
+    "nav.post-navigation a[rel='next']",
+    ".post-navigation .nav-next a",
+    "a.next-post",
+]
+
+
+def extract_title(soup: BeautifulSoup) -> Optional[str]:
+    for sel in TITLE_SELECTORS:
+        el = soup.select_one(sel)
+        if el and el.get_text(strip=True):
+            return el.get_text(strip=True)
+    # Fallback to <title>
+    t = soup.title.string if soup.title else None
+    return t.strip() if t else None
+
+
+def parse_date_str(s: str) -> Optional[datetime]:
+    if not s:
+        return None
+    s = s.strip()
+    # Try common ISO-like formats first
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S%zZ", "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s, fmt)
+        except Exception:
+            pass
+    # Loose parse: 2025-08-04T12:34:56Z -> TZ naive
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", s)
+    if m:
+        try:
+            return datetime.strptime(m.group(1), "%Y-%m-%d")
+        except Exception:
+            pass
+    return None
+
+
+def extract_published_at(soup: BeautifulSoup) -> Optional[datetime]:
+    # Prefer meta tags
+    for sel, attr in DATE_META_SELECTORS:
+        el = soup.select_one(sel)
+        if el and el.get(attr):
+            dt = parse_date_str(el.get(attr))
+            if dt:
+                return dt
+    # Try <time datetime="">
+    for t in soup.find_all("time"):
+        dt = parse_date_str(t.get("datetime") or t.get_text())
+        if dt:
+            return dt
+    return None
+
+
+def extract_prev_next(soup: BeautifulSoup, page_html: str) -> Tuple[Optional[str], Optional[str]]:
+    # First try conventional selectors
+    prev = next_ = None
+    for sel in PREV_LINK_SELECTORS:
+        a = soup.select_one(sel)
+        if a and a.get("href"):
+            prev = a.get("href"); break
+    for sel in NEXT_LINK_SELECTORS:
+        a = soup.select_one(sel)
+        if a and a.get("href"):
+            next_ = a.get("href"); break
+
+    # Heuristic: look for links labelled "Previous"/"Next" near "share this page"
+    if not prev or not next_:
+        try:
+            # Find "share this page" text block and scan nearby anchors
+            share_idx = page_html.lower().find("share this page")
+            if share_idx != -1:
+                window = page_html[max(0, share_idx - 2000): share_idx + 1000]
+                s2 = BeautifulSoup(window, "html.parser")
+                anchors = s2.find_all("a", href=True)
+                # try to infer left/right by arrow glyphs or text
+                for a in anchors:
+                    txt = (a.get_text() or "").strip().lower()
+                    if not prev and ("previous" in txt or "older" in txt or "←" in txt):
+                        prev = a.get("href")
+                    if not next_ and ("next" in txt or "newer" in txt or "→" in txt):
+                        next_ = a.get("href")
+                    if prev and next_:
+                        break
+        except Exception:
+            pass
+
+    return prev, next_
+
+
+# ------------- Latest post discovery -------------
+
+def latest_post_from_home(session: requests.Session, home_url: str) -> Optional[str]:
+    resp = http_get(session, home_url)
+    html = resp.text
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Common listing anchors (prioritised)
+    candidates = []
+    candidates += [a.get("href") for a in soup.select("h2.entry-title a[href]")]
+    candidates += [a.get("href") for a in soup.select("article header h2 a[href]")]
+    candidates += [a.get("href") for a in soup.select("main a[href]")]
+    for href in candidates:
+        u = normalize_url(home_url, href)
+        if u:
+            return u
+
+    # Fallbacks: feed then WP JSON
+    feed_url = discover_feed_url(html, home_url)
+    try:
+        f = http_get(session, feed_url)
+        if f.ok and ("xml" in f.headers.get("Content-Type", "").lower() or f.text.lstrip().startswith("<")):
+            u = feed_latest_entry_link(f.text)
+            if u:
+                return u
+    except Exception as e:
+        logging.debug("Feed fallback failed for %s: %s", home_url, e)
+
+    try:
+        api = urljoin(home_url, "/wp-json/wp/v2/posts?per_page=1&_fields=link,date")
+        j = http_get(session, api)
+        data = j.json()
+        if isinstance(data, list) and data and data[0].get("link"):
+            return data[0]["link"]
+    except Exception as e:
+        logging.debug("WP JSON fallback failed for %s: %s", home_url, e)
+
+    return None
+
+
+# ------------- DB ops -------------
+
+def list_sources(conn, only_host: Optional[str], force: bool):
+    q = """
+      SELECT id, name, url, kind, is_enabled, last_checked, last_success
+      FROM Source
+      WHERE kind='Blog' AND is_enabled=1
     """
+    params = []
+    if only_host:
+        q += " AND SUBSTRING_INDEX(SUBSTRING_INDEX(url,'/',3),'/',-1)=%s"
+        params.append(only_host.lower())
+    if not force and not only_host:
+        q += " AND (last_checked IS NULL OR DATE(last_checked) < CURDATE())"
+    q += " ORDER BY id"
     with conn.cursor() as cur:
-        cur.execute(sql, params)
+        cur.execute(q, params)
         return cur.fetchall()
 
-# ---------- Core crawl for one blog ----------
 
-def crawl_blog_incremental(conn, session: requests.Session, blog_name: str, base_url: str,
-                           max_posts_per_blog: int, sleep_s: float) -> Tuple[int, int]:
+def upsert_post(conn, blog_name: str, url: str, title: Optional[str],
+                published_at: Optional[datetime], prev_url: Optional[str], next_url: Optional[str]):
+    sql = """
+      INSERT INTO BlogPost (blog_name, url, title, published_at, previous_url, next_url, created_at, updated_at)
+      VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        title=VALUES(title),
+        published_at=VALUES(published_at),
+        previous_url=VALUES(previous_url),
+        next_url=VALUES(next_url),
+        updated_at=NOW()
     """
-    Returns (new_posts, http_status_of_homepage)
+    with conn.cursor() as cur:
+        cur.execute(sql, (blog_name, url, title, published_at, prev_url, next_url))
+
+
+def refresh_source_summary(conn, source_id: int, home_host: str):
+    sql = """
+      UPDATE Source s
+      JOIN (
+        SELECT
+          DATE(MIN(published_at)) AS first_date,
+          DATE(MAX(published_at)) AS last_date,
+          COUNT(*) AS total
+        FROM BlogPost
+        WHERE url LIKE CONCAT('https://', %s, '/%%')
+      ) b ON 1=1
+      SET s.first_post_date = b.first_date,
+          s.last_post_date  = b.last_date,
+          s.total_posts     = b.total,
+          s.updated_at      = NOW()
+      WHERE s.id=%s
     """
-    if not base_url.endswith("/"):
-        base_url += "/"
+    with conn.cursor() as cur:
+        cur.execute(sql, (home_host, source_id))
 
-    last_status: Optional[int] = None
-    home_html, last_status = fetch(base_url, session)
-    latest_url = find_latest_post_url(home_html)
 
-    new_posts = 0
-    current = latest_url
-    seen_loop_guard = set()
+def mark_source_checked(conn, source_id: int, success: bool, status_code: int = 0):
+    q = """
+      UPDATE Source
+      SET last_checked = NOW(),
+          {success_field} = NOW(),
+          status_code = %s
+      WHERE id = %s
+    """.format(success_field="last_success" if success else "last_checked")  # last_success only on success
+    with conn.cursor() as cur:
+        cur.execute(q, (status_code, source_id))
 
-    while current and current not in seen_loop_guard and new_posts < max_posts_per_blog:
-        seen_loop_guard.add(current)
 
-        # Stop if we've already got this post (incremental finish)
-        if blogpost_exists(conn, current):
-            logging.info("Encountered existing post; stopping at %s", current)
-            break
+# ------------- Crawl logic -------------
 
-        post_html, status = fetch(current, session)
-        last_status = status or last_status
+def crawl_blog(session: requests.Session, conn, source_row, args) -> Tuple[int, Optional[str]]:
+    """
+    Returns (new_posts_count, error_message).
+    """
+    source_id, name, url, kind, is_enabled, last_checked, last_success = source_row
+    home_url = url if url.endswith("/") else url + "/"
+    host = host_from_url(home_url)
+    logging.info("Source #%s | %s (%s)", source_id, name, host)
 
-        title, published_at = extract_title_and_date(post_html)
-        prev_url, next_url = find_prev_next_urls(post_html, current)
+    try:
+        # Decide starting post
+        if args.only_host and args.start_url and host == args.only_host:
+            start_url = args.start_url
+        elif args.start_url and not args.only_host:
+            # If user provided start-url without only-host, use it for any single source run
+            start_url = args.start_url
+        else:
+            start_url = latest_post_from_home(session, home_url)
 
-        upsert_blogpost(conn, blog_name, current, title, published_at, prev_url, next_url)
-        new_posts += 1
-        logging.info("Added: %s | %s", published_at or "Unknown date", title or current)
+        if not start_url:
+            raise RuntimeError("Could not locate latest post URL on homepage.")
 
-        if not prev_url:
-            logging.info("No previous link; reached start of archive.")
-            break
+        # Walk back via previous links
+        seen = 0
+        this_url = start_url
+        visited = set()
+        while this_url:
+            if this_url in visited:
+                break
+            visited.add(this_url)
 
-        current = prev_url
-        time.sleep(sleep_s)
+            resp = http_get(session, this_url)
+            html = resp.text
+            soup = BeautifulSoup(html, "html.parser")
 
-    return new_posts, (last_status or 200)
+            title = extract_title(soup)
+            published_at = extract_published_at(soup)
+            prev_href, next_href = extract_prev_next(soup, html)
 
-# ---------- Main ----------
+            prev_abs = normalize_url(this_url, prev_href) if prev_href else None
+            next_abs = normalize_url(this_url, next_href) if next_href else None
+
+            # Upsert this post
+            try:
+                upsert_post(conn, name, this_url, title, published_at, prev_abs, next_abs)
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise
+
+            seen += 1
+            if args.max_posts_per_blog and seen >= args.max_posts_per_blog:
+                logging.info("Reached max_posts_per_blog=%d for %s", args.max_posts_per_blog, host)
+                break
+
+            # Stop early if we've already seen prev_abs in DB (incremental)
+            if prev_abs:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1 FROM BlogPost WHERE url=%s LIMIT 1", (prev_abs,))
+                    exists = cur.fetchone() is not None
+                if exists:
+                    logging.info("Hit already-known post; stopping at %s", prev_abs)
+                    break
+
+            # Move to previous
+            this_url = prev_abs
+
+            if args.sleep > 0:
+                time.sleep(args.sleep)
+
+        # Refresh summary and mark success
+        refresh_source_summary(conn, source_id, host)
+        conn.commit()
+        mark_source_checked(conn, source_id, success=True, status_code=0)
+        conn.commit()
+        logging.info("Success for %s; new/updated posts this run: %d", host, seen)
+        return seen, None
+
+    except Exception as e:
+        logging.error("Failed for %s: %s", host, e)
+        try:
+            mark_source_checked(conn, source_id, success=False, status_code=getattr(e, "status_code", 1))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        return 0, str(e)
+
+
+# ------------- Main -------------
 
 def main():
-    ap = argparse.ArgumentParser(description="Fetch GOV.UK blog posts for all un-checked sources.")
-    ap.add_argument("--force", action="store_true",
-                    help="Ignore last_checked and process all enabled blogs.")
-    ap.add_argument("--only-host", action="append",
-                    help="Limit to one or more hosts (e.g. --only-host gds.blog.gov.uk). Can repeat.")
-    ap.add_argument("--max-posts-per-blog", type=int, default=100000,
-                    help="Safety limit per blog (default 100000).")
-    ap.add_argument("--sleep", type=float, default=0.8,
-                    help="Seconds to sleep between requests (default 0.8).")
-    ap.add_argument("--log-dir", default="logs",
-                    help="Directory for rotating logs (default logs).")
-    ap.add_argument("--log-level", default="INFO",
-                    help="File log level (DEBUG, INFO, WARNING, ERROR).")
+    ap = argparse.ArgumentParser(description="Crawl enabled Blog sources and upsert posts.")
+    ap.add_argument("--force", action="store_true", help="Ignore 'checked today' and crawl anyway")
+    ap.add_argument("--only-host", help="Limit to a specific host (e.g., gds.blog.gov.uk)")
+    ap.add_argument("--start-url", help="Override: start crawl from this post URL (use with --only-host)")
+    ap.add_argument("--max-posts-per-blog", type=int, default=0, help="Ceiling for posts fetched per blog (0=unlimited)")
+    ap.add_argument("--sleep", type=float, default=DEFAULT_SLEEP_BETWEEN, help="Seconds to sleep between requests")
+    ap.add_argument("--log-level", default="INFO")
     args = ap.parse_args()
 
-    setup_logging(args.log_dir, args.log_level)
     load_env(".env")
+    setup_logging(args.log_level)
 
-    try:
-        conn = db_connect()
-    except Exception as e:
-        logging.error("DB connection failed: %s", e)
-        sys.exit(2)
-
+    # HTTP session
     session = requests.Session()
+    session.headers.update({"User-Agent": USER_AGENT})
 
+    conn = get_db()
     try:
-        sources = select_sources(conn, force=args.force, only_hosts=args.only_host)
-        if not sources:
-            logging.info("No sources to process (maybe all checked today). Use --force to override.")
-            conn.close()
-            return
-
-        logging.info("Processing %d sources ...", len(sources))
-        for source_id, name, url in sources:
-            host = host_from_url(url)
-            logging.info("Source #%s | %s (%s)", source_id, name, host)
-            ok = False
-            status_code: Optional[int] = None
-            try:
-                new_posts, status_code = crawl_blog_incremental(
-                    conn, session, name, url, args.max_posts_per_blog, args.sleep
-                )
-                ok = True
-                logging.info("Result: %d new posts", new_posts)
-                # Refresh summary fields for this source
-                update_source_summary_for_host(conn, source_id, host)
-            except Exception as e:
-                logging.error("Failed for %s: %s", host, e)
-                ok = False
-            finally:
-                update_source_check(conn, source_id, ok=ok, status_code=status_code)
-
-        logging.info("All done.")
+        rows = list_sources(conn, args.only_host, args.force)
+        logging.info("Processing %d sources ...", len(rows))
+        total_new = 0
+        for row in rows:
+            new_count, err = crawl_blog(session, conn, row, args)
+            total_new += new_count
+        logging.info("All done. New/updated posts total: %d", total_new)
     finally:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        # No console output; ensure file log has a record
-        logging.error("Interrupted by user (KeyboardInterrupt).")
-        sys.exit(130)
-    except Exception as e:
-        logging.error("Fatal error: %s", e)
-        sys.exit(1)
+    main()
 

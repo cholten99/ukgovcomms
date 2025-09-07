@@ -2,8 +2,7 @@ name: Deploy to Server
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -13,9 +12,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Upload the repo to the server (excludes untracked/ignored files by default)
       - name: Upload repository to server
-        uses: appleboy/scp-action@v0.1.8
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -25,9 +23,8 @@ jobs:
           target: /var/www/ukgovcomms
           overwrite: true
 
-      # Create/update .env on the server from GitHub Secrets
       - name: Create .env on server
-        uses: appleboy/ssh-action@v0.1.8
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -36,17 +33,16 @@ jobs:
           script: |
             set -euo pipefail
             cd /var/www/ukgovcomms
-            # Write .env (add/remove keys to match your app)
-            echo "DB_HOST=${{ secrets.DB_HOST }}" > .env
-            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-            # Optional: any other runtime settings
-            echo "MPLBACKEND=Agg" >> .env
+            {
+              echo "DB_HOST=${{ secrets.DB_HOST }}"
+              echo "DB_NAME=${{ secrets.DB_NAME }}"
+              echo "DB_USER=${{ secrets.DB_USER }}"
+              echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+              echo "MPLBACKEND=Agg"
+            } > .env
 
-      # Ensure in-repo venv exists; install exact deps from requirements.txt
-      - name: Install dependencies on server
-        uses: appleboy/ssh-action@v0.1.8
+      - name: Install dependencies on server (in-repo venv)
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -59,15 +55,15 @@ jobs:
             ./.venv/bin/pip install --upgrade pip setuptools wheel
             ./.venv/bin/pip install -r requirements.txt
 
-      # Restart your service to pick up new code & venv
-      - name: Restart Gunicorn service
-        uses: appleboy/ssh-action@v0.1.8
+      - name: Restart ukgovcomms service
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
           script: |
+            set -euo pipefail
             sudo systemctl daemon-reload
             sudo systemctl restart ukgovcomms
             sudo systemctl status ukgovcomms --no-pager -l || true

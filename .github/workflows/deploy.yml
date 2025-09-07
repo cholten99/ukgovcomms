@@ -11,31 +11,22 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Create .env file from secrets
-        run: |
-          echo "BLUESKY_HANDLE=${{ secrets.BLUESKY_HANDLE }}" > .env
-          echo "BLUESKY_APP_PASSWORD=${{ secrets.BLUESKY_APP_PASSWORD }}" >> .env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "GATEKEEP_PASSWORD=${{ secrets.GATEKEEP_PASSWORD }}" >> .env
-          echo "FLASK_SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}" >> .env
-
-      - name: Upload files via SFTP
-        uses: appleboy/scp-action@v0.1.7
+      # Upload the repo to the server (excludes untracked/ignored files by default)
+      - name: Upload repository to server
+        uses: appleboy/scp-action@v0.1.8
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
-          source: "."
-          target: "/var/www/ukgovcomms"
-          rm: true
+          source: .
+          target: /var/www/ukgovcomms
+          overwrite: true
 
-      - name: Install dependencies on server via SSH
+      # Create/update .env on the server from GitHub Secrets
+      - name: Create .env on server
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.SFTP_HOST }}
@@ -43,12 +34,33 @@ jobs:
           key: ${{ secrets.SFTP_PRIVATE_KEY }}
           port: 22
           script: |
-            source /var/www/.venvs/ukgovcomms/bin/activate
+            set -euo pipefail
             cd /var/www/ukgovcomms
-            pip install --upgrade pip
-            pip install -r requirements.txt
+            # Write .env (add/remove keys to match your app)
+            echo "DB_HOST=${{ secrets.DB_HOST }}" > .env
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+            # Optional: any other runtime settings
+            echo "MPLBACKEND=Agg" >> .env
 
-      - name: Restart Gunicorn
+      # Ensure in-repo venv exists; install exact deps from requirements.txt
+      - name: Install dependencies on server
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          key: ${{ secrets.SFTP_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+            cd /var/www/ukgovcomms
+            python3 -m venv .venv
+            ./.venv/bin/pip install --upgrade pip setuptools wheel
+            ./.venv/bin/pip install -r requirements.txt
+
+      # Restart your service to pick up new code & venv
+      - name: Restart Gunicorn service
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.SFTP_HOST }}
@@ -58,4 +70,4 @@ jobs:
           script: |
             sudo systemctl daemon-reload
             sudo systemctl restart ukgovcomms
-
+            sudo systemctl status ukgovcomms --no-pager -l || true

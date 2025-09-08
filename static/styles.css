@@ -66,9 +66,6 @@ h1, h2 {
     font-size: 1em;
     white-space: nowrap;
     display: block;
-
-    /* DEBUG */
-    /* border-left: 1px dashed red; */
 }
 
 .rotator-label {
@@ -111,9 +108,6 @@ nav {
 
 .nav-inner {
     padding: 0em 0.5em;
-
-    /* DEBUG */
-    /* border-left: 1px dashed red; */
 }
 
 nav a {
@@ -275,51 +269,46 @@ footer {
   margin: 1em 0;
 }
 
-/* ----- Dataviz page ----- */
-/* Global visualisations row */
+/* ===== Dataviz page ===== */
+
+/* consistent display height for charts/wordclouds */
+:root { --viz-height: 260px; }  /* tweak to taste */
+
+/* row of visuals */
 .global-viz-row {
   display: grid;
   grid-template-columns: 1fr;   /* mobile: 1 per row */
   gap: 1rem;
 }
 
-.global-viz-row .viz {
-  margin: 0;                    /* remove default figure margin */
-}
-
-.global-viz-row .viz img {
-  width: 100%;                  /* fill the grid cell */
-  height: auto;                 /* keep aspect ratio */
-  display: block;               /* remove inline-gap */
-  max-width: 100%;              /* never overflow */
-}
-
-.global-viz-row .viz figcaption {
-  text-align: center;
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-  color: #666;                  /* tweak to match your palette */
-}
-
-/* ≥900px: three across */
 @media (min-width: 900px) {
   .global-viz-row {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr);  /* desktop: 3 across */
   }
 }
 
-/* Make all global charts the same height while preserving aspect ratio */
-:root {
-  --viz-height: 260px; /* tweak to taste (220–320px works well) */
+/* figure + image + caption */
+.global-viz-row .viz {
+  margin: 0;
+  text-align: center;           /* center captions */
 }
 
 .global-viz-row .viz img {
-  height: var(--viz-height);
-  width: 100%;
-  max-width: 100%;
-  object-fit: contain;   /* keep aspect ratio, no cropping */
   display: block;
-  background: #fff;      /* optional, avoids transparency showing behind letterboxing */
+  margin-inline: auto;          /* center image */
+  width: 100%;
+  height: var(--viz-height);
+  max-width: 100%;
+  object-fit: contain;          /* preserve aspect ratio */
+  background: #fff;             /* avoids odd backgrounds in letterbox areas */
+}
+
+.global-viz-row .viz figcaption {
+  margin-top: 0.5rem;           /* small gap under image */
+  text-align: center;
+  font-size: 1.1rem;
+  line-height: 1.35;
+  font-weight: 500;
 }
 
 /* Image modal (lightbox) */
@@ -341,4 +330,84 @@ footer {
   background: #fff; color: #111; font-size: 1.25rem; line-height: 2rem;
   cursor: pointer;
 }
+
+/* ===== Leaderboard ===== */
+.leaderboard-section {
+  margin-top: 2rem;
+}
+
+.leaderboard {
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Make the header sticky while body scrolls */
+.leaderboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.leaderboard thead th {
+  position: sticky;
+  top: 0;
+  background: #f7f7f7;
+  z-index: 1;
+  padding: .5rem .5rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e5e5;
+}
+.leaderboard thead th.num { text-align: right; }
+
+/* scrollable body ~10 rows high (tweak height to taste) */
+.leaderboard thead, .leaderboard tbody tr { display: table; width: 100%; table-layout: fixed; }
+.leaderboard tbody { display: block; max-height: 24rem; overflow-y: auto; }
+.leaderboard tbody td { padding: .4rem .5rem; border-bottom: 1px dashed #f1f1f1; vertical-align: top; }
+.leaderboard tbody td.num { text-align: right; white-space: nowrap; }
+
+/* Sort arrows */
+.leaderboard thead th.sort-asc::after  { content: " ▲"; }
+.leaderboard thead th.sort-desc::after { content: " ▼"; }
+
+/* Small hint text */
+.leaderboard-hint {
+  margin-top: .4rem;
+  color: #666;
+  font-size: .9rem;
+}
+
+/* ===== Narrow & center the leaderboard (overrides) ===== */
+
+/* Center the whole leaderboard block and limit max width */
+.leaderboard-section {
+  max-width: clamp(680px, 75vw, 980px);
+  margin: 2rem auto; /* centers it */
+}
+
+/* Keep the table tidy inside the narrower container */
+#leaderboard-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+#leaderboard-table th:nth-child(1),
+#leaderboard-table td:nth-child(1) {  /* Blog name */
+  width: 60%;
+  overflow-wrap: anywhere;   /* wrap very long names */
+}
+
+#leaderboard-table th:nth-child(2),
+#leaderboard-table td:nth-child(2) {  /* Last post */
+  width: 25%;
+  white-space: nowrap;
+}
+
+#leaderboard-table th:nth-child(3),
+#leaderboard-table td:nth-child(3) {  /* Total */
+  width: 15%;
+  white-space: nowrap;
+}
+
+/* Slightly tighter row padding to reduce vertical whitespace */
+.leaderboard tbody td { padding: .35rem .5rem; }
 

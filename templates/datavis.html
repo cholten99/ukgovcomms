@@ -1,61 +1,98 @@
 {% extends "base.html" %}
-
 {% block title %}Datavis{% endblock %}
 
 {% block content %}
-  <section aria-labelledby="datavis-title">
-    <h1 id="datavis-title">Datavis</h1>
-    <p>
-      These charts summarise posting activity across all enabled sources in the database.
-      They’re generated from blog posts (and, later, other channels) and refresh whenever new items are added.
-    </p>
+<section aria-labelledby="datavis-title">
+  <h1 id="datavis-title">Datavis</h1>
+  <p>
+    These charts summarise posting activity across all enabled sources in the database.
+    They’re generated from blog posts (and, later, other channels) and refresh whenever new items are added.
+  </p>
 
-    <!-- New stats line -->
-    <p class="global-stats">
-      Coverage: <strong>{{ stats.first }}</strong> to <strong>{{ stats.last }}</strong>
-      &nbsp;•&nbsp; Total posts: <strong>{{ stats.total }}</strong>
-    </p>
+  <p class="global-stats">
+    Coverage: <strong>{{ stats.first }}</strong> to <strong>{{ stats.last }}</strong>
+    &nbsp;•&nbsp; Total posts: <strong>{{ stats.total }}</strong>
+  </p>
 
-    <div class="global-viz-row">
-      <figure class="viz">
-        <img
-          src="/assets/global/monthly_bars_all-sources.png"
-          alt="Bar chart of posts per month across all sources"
-          loading="lazy"
-        />
-        <figcaption>Posts per month (all sources).</figcaption>
-      </figure>
-
-      <figure class="viz">
-        <img
-          src="/assets/global/rolling_avg_90d_all-sources.png"
-          alt="Line chart of rolling 90-day average posts per day across all sources"
-          loading="lazy"
-        />
-        <figcaption>Rolling average posts/day (90-day window).</figcaption>
-      </figure>
-
-      <figure class="viz">
-        <img
-          src="/assets/global/wordcloud_all-sources.png"
-          alt="Word cloud of common words in post titles across all sources"
-          loading="lazy"
-        />
-        <figcaption>Title word cloud (all sources).</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <!-- Image modal -->
-  <div id="img-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-content">
-      <button id="img-modal-close" class="modal-close" aria-label="Close">×</button>
-      <img id="img-modal-img" src="" alt="" />
-      <div id="img-modal-caption" class="modal-caption"></div>
-    </div>
+  <!-- small scope toolbar for swapping between global and per-blog -->
+  <div class="viz-toolbar">
+    Showing: <strong id="viz-scope-label">All sources</strong>
+    <button id="viz-reset" class="btn-reset" hidden>Back to global</button>
   </div>
 
-  <!-- Lightbox JS -->
-  <script src="{{ url_for('static', filename='datavis.js') }}" defer></script>
+  <div class="global-viz-row">
+    <figure class="viz">
+      <img id="img-monthly"
+           src="/assets/global/monthly_bars_all-sources.png"
+           alt="Posts per month across all sources" loading="lazy" />
+      <figcaption>Posts per month.</figcaption>
+    </figure>
+
+    <figure class="viz">
+      <img id="img-rolling"
+           src="/assets/global/rolling_avg_90d_all-sources.png"
+           alt="Rolling 90-day average posts per day across all sources" loading="lazy" />
+      <figcaption>Rolling average posts/day (90-day window).</figcaption>
+    </figure>
+
+    <figure class="viz">
+      <img id="img-wordcloud"
+           src="/assets/global/wordcloud_all-sources.png"
+           alt="Word cloud of common words in post titles across all sources" loading="lazy" />
+      <figcaption>Title word cloud.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- Single Leaderboard -->
+<section aria-labelledby="leaderboard-title" class="leaderboard-section">
+  <h2 id="leaderboard-title">Leaderboard</h2>
+  <p class="leaderboard-hint">Tip: click the column headers to sort. Click again to reverse.</p>
+
+  <div class="leaderboard">
+    <table id="leaderboard-table">
+      <thead>
+        <tr>
+          <th data-sort="name">Blog</th>
+          <th data-sort="last">Last post</th>
+          <th data-sort="total" class="num">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in leaderboard %}
+        <tr>
+          <td>
+            <a href="#"
+               class="swap-link js-swap-viz"
+               data-slug="{{ r.slug }}"
+               data-name="{{ r.name }}"
+               title="Show charts for {{ r.name }}">
+              {{ r.name }}
+            </a>
+            <a class="ext"
+               href="{{ r.url }}"
+               target="_blank" rel="noopener"
+               aria-label="Open {{ r.name }} in a new tab"
+               title="Open blog in new tab">↗</a>
+          </td>
+          <td data-value="{{ r.last_raw or '' }}">{{ r.last_pretty }}</td>
+          <td class="num" data-value="{{ r.total }}">{{ r.total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Image modal (unchanged) -->
+<div id="img-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-content">
+    <button id="img-modal-close" class="modal-close" aria-label="Close">×</button>
+    <img id="img-modal-img" src="" alt="" />
+    <div id="img-modal-caption" class="modal-caption"></div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='datavis.js') }}" defer></script>
 {% endblock %}
 

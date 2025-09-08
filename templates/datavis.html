@@ -3,6 +3,59 @@
 {% block title %}Datavis{% endblock %}
 
 {% block content %}
-    <h1>Datavis</h1>
-    <p>Data visualizations of drop-off in UK comms postings on blogs, socials, video, etc.</p>
+  <section aria-labelledby="datavis-title">
+    <h1 id="datavis-title">Datavis</h1>
+    <p>
+      These charts summarise posting activity across all enabled sources in the database.
+      They’re generated from blog posts (and, later, other channels) and refresh whenever new items are added.
+    </p>
+
+    <!-- New stats line -->
+    <p class="global-stats">
+      Coverage: <strong>{{ stats.first }}</strong> to <strong>{{ stats.last }}</strong>
+      &nbsp;•&nbsp; Total posts: <strong>{{ stats.total }}</strong>
+    </p>
+
+    <div class="global-viz-row">
+      <figure class="viz">
+        <img
+          src="/assets/global/monthly_bars_all-sources.png"
+          alt="Bar chart of posts per month across all sources"
+          loading="lazy"
+        />
+        <figcaption>Posts per month (all sources).</figcaption>
+      </figure>
+
+      <figure class="viz">
+        <img
+          src="/assets/global/rolling_avg_90d_all-sources.png"
+          alt="Line chart of rolling 90-day average posts per day across all sources"
+          loading="lazy"
+        />
+        <figcaption>Rolling average posts/day (90-day window).</figcaption>
+      </figure>
+
+      <figure class="viz">
+        <img
+          src="/assets/global/wordcloud_all-sources.png"
+          alt="Word cloud of common words in post titles across all sources"
+          loading="lazy"
+        />
+        <figcaption>Title word cloud (all sources).</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Image modal -->
+  <div id="img-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content">
+      <button id="img-modal-close" class="modal-close" aria-label="Close">×</button>
+      <img id="img-modal-img" src="" alt="" />
+      <div id="img-modal-caption" class="modal-caption"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox JS -->
+  <script src="{{ url_for('static', filename='datavis.js') }}" defer></script>
 {% endblock %}
+

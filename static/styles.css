@@ -275,3 +275,70 @@ footer {
   margin: 1em 0;
 }
 
+/* ----- Dataviz page ----- */
+/* Global visualisations row */
+.global-viz-row {
+  display: grid;
+  grid-template-columns: 1fr;   /* mobile: 1 per row */
+  gap: 1rem;
+}
+
+.global-viz-row .viz {
+  margin: 0;                    /* remove default figure margin */
+}
+
+.global-viz-row .viz img {
+  width: 100%;                  /* fill the grid cell */
+  height: auto;                 /* keep aspect ratio */
+  display: block;               /* remove inline-gap */
+  max-width: 100%;              /* never overflow */
+}
+
+.global-viz-row .viz figcaption {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  color: #666;                  /* tweak to match your palette */
+}
+
+/* ≥900px: three across */
+@media (min-width: 900px) {
+  .global-viz-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Make all global charts the same height while preserving aspect ratio */
+:root {
+  --viz-height: 260px; /* tweak to taste (220–320px works well) */
+}
+
+.global-viz-row .viz img {
+  height: var(--viz-height);
+  width: 100%;
+  max-width: 100%;
+  object-fit: contain;   /* keep aspect ratio, no cropping */
+  display: block;
+  background: #fff;      /* optional, avoids transparency showing behind letterboxing */
+}
+
+/* Image modal (lightbox) */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  display: none; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal-overlay.open { display: flex; }
+
+.modal-content { position: relative; max-width: 92vw; max-height: 92vh; }
+.modal-content img { width: 100%; height: auto; max-height: 92vh; display: block; }
+.modal-caption { color: #eee; text-align: center; margin-top: .5rem; font-size: .95rem; }
+
+.modal-close {
+  position: absolute; top: .5rem; right: .5rem;
+  width: 2rem; height: 2rem; border: none; border-radius: 9999px;
+  background: #fff; color: #111; font-size: 1.25rem; line-height: 2rem;
+  cursor: pointer;
+}
+

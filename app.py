@@ -1,8 +1,12 @@
 import os
 import random
+import datetime as dt
 import mysql.connector
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, make_response, flash
+from flask import (
+    Flask, render_template, request, redirect, url_for,
+    make_response, flash, send_from_directory
+)
 from atproto import Client
 
 app = Flask(__name__)
@@ -17,9 +21,14 @@ BLUESKY_APP_PASSWORD = os.getenv("BLUESKY_APP_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")  # <-- this line is essential
+DB_NAME = os.getenv("DB_NAME")
 
-#DB connection
+# Paths for serving local assets during dev
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(APP_ROOT, "assets")
+
+# --- Utility functions -------------------------------------------------------
+
 def get_db_connection():
     return mysql.connector.connect(
         host=os.getenv('DB_HOST') or 'localhost',
@@ -34,7 +43,6 @@ def get_latest_post():
         client.login(BLUESKY_HANDLE, BLUESKY_APP_PASSWORD)
         feed = client.app.bsky.feed.get_author_feed({'actor': BLUESKY_HANDLE, 'limit': 1})
         if not feed.feed:
-            print("No posts found for this account.")
             return None
         post_view = feed.feed[0].post
         author = post_view.author
@@ -45,10 +53,9 @@ def get_latest_post():
             'avatar': author.avatar,
             'text': record.text,
             'timestamp': record.created_at,
-            'uri': post_view.uri  # 👈 Add this
+            'uri': post_view.uri
         }
-    except Exception as e:
-        print(f"Error fetching Bluesky post: {e}")
+    except Exception:
         return None
 
 def get_all_signatories():
@@ -65,12 +72,47 @@ def load_shuffled_signatures():
     random.shuffle(names)
     return names
 
+def fetch_global_stats():
+    """Return {'first': 'YYYY-MM-DD', 'last': 'YYYY-MM-DD', 'total': int} for all posts."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT DATE(MIN(published_at)) AS first_dt,
+               DATE(MAX(published_at)) AS last_dt,
+               COUNT(*) AS total_posts
+        FROM BlogPost
+        WHERE published_at IS NOT NULL
+    """)
+    row = cur.fetchone()
+    conn.close()
+
+    first_dt, last_dt, total = (row or (None, None, 0))
+    def fmt(d):
+        if isinstance(d, (dt.date, dt.datetime)):
+            return d.strftime('%Y-%m-%d')
+        return '—' if d in (None, '') else str(d)
+
+    return {
+        'first': fmt(first_dt),
+        'last': fmt(last_dt),
+        'total': int(total or 0),
+    }
+
+# --- Context processors / static helpers ------------------------------------
+
 @app.context_processor
 def inject_signatures():
     try:
         return dict(signatures=load_shuffled_signatures())
-    except:
+    except Exception:
         return dict(signatures=[])
+
+# Serve /assets/* during local dev so templates can load charts/wordclouds
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    return send_from_directory(ASSETS_DIR, filename, conditional=True)
+
+# --- Routes ------------------------------------------------------------------
 
 @app.route('/')
 def home():
@@ -135,7 +177,10 @@ def bestpractice():
 
 @app.route('/datavis')
 def datavis():
-    return render_template('datavis.html', active_page='datavis')
+    stats = fetch_global_stats()
+    return render_template('datavis.html',
+                           active_page='datavis',
+                           stats=stats)
 
 @app.route('/signatories')
 def signatories():
@@ -203,8 +248,6 @@ def admin():
         results=results,
         search_query=search_query
     )
-
-from flask import flash  # Add at top with other Flask imports
 
 @app.route('/admin/delete/<table>/<int:record_id>')
 def delete_record(table, record_id):

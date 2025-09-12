@@ -2,6 +2,7 @@ import os
 import re
 import random
 import datetime as dt
+import time
 import mysql.connector
 from dotenv import load_dotenv
 from flask import (
@@ -310,6 +311,52 @@ def add_record(table):
             flash(f'Error adding record: {e}', 'error')
     conn.close()
     return render_template('add.html', table=table, columns=columns)
+
+def _list_exports():
+    """Return a list of downloadable export files in /exports."""
+    base = os.path.join(app.root_path, "exports")
+    files = []
+    if not os.path.isdir(base):
+        return files
+    for name in os.listdir(base):
+        if not (name.endswith(".zip") or name.endswith(".sql.gz")):
+            continue
+        p = os.path.join(base, name)
+        if not os.path.isfile(p):
+            continue
+        files.append({
+            "name": name,
+            "size": os.path.getsize(p),
+            "mtime": time.strftime("%Y-%m-%d %H:%M",
+                                   time.localtime(os.path.getmtime(p)))
+        })
+    # newest first
+    files.sort(key=lambda f: f["mtime"], reverse=True)
+    return files
+
+@app.route("/downloads")
+def downloads_index():
+    files = _list_exports()
+    # Show “featured” latests first if present
+    featured = [f for f in files if f["name"] in (
+        "ukgovcomms-data-latest.zip",
+        "ukgovcomms-blogs-latest.zip",
+    )]
+    # The rest (history)
+    rest = [f for f in files if f not in featured]
+    return render_template("downloads.html", featured=featured, files=rest)
+
+@app.route("/download/<path:filename>")
+def download_file(filename):
+    # Allow only files that actually exist in /exports with expected suffixes
+    base = os.path.join(app.root_path, "exports")
+    safe = filename.endswith(".zip") or filename.endswith(".sql.gz")
+    full = os.path.join(base, filename)
+    if not (safe and os.path.commonpath([base, os.path.abspath(full)]) == base and os.path.isfile(full)):
+        abort(404)
+    return send_from_directory(base, filename, as_attachment=True,
+                               download_name=filename, max_age=3600,
+                               conditional=True, etag=True)
 
 @app.errorhandler(404)
 def page_not_found(e):

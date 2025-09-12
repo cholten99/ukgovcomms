@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page">
+  <h1>Downloads</h1>
+  <p>Grab the latest dataset snapshots as ZIP files. These contain CSVs grouped by source type (e.g. Blogs; later: YouTube).</p>
+
+  {% if featured %}
+    <h2>Latest</h2>
+    <ul>
+      {% for f in featured %}
+        <li>
+          <a href="{{ url_for('download_file', filename=f.name) }}">{{ f.name }}</a>
+          — {{ (f.size/1024/1024)|round(2) }} MB • updated {{ f.mtime }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h2>Archive</h2>
+  {% if files %}
+    <ul>
+      {% for f in files %}
+        <li>
+          <a href="{{ url_for('download_file', filename=f.name) }}">{{ f.name }}</a>
+          — {{ (f.size/1024/1024)|round(2) }} MB • {{ f.mtime }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No archived exports yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
+

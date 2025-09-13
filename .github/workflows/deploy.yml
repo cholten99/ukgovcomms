@@ -38,6 +38,7 @@ jobs:
               echo "DB_NAME=${{ secrets.DB_NAME }}"
               echo "DB_USER=${{ secrets.DB_USER }}"
               echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+              echo "YT_API_KEY=${{ secrets.YT_API_KEY }}"
               echo "MPLBACKEND=Agg"
             } > .env
 

@@ -193,7 +193,7 @@ def bestpractice():
     results = cursor.fetchall()
     cursor.close(); conn.close()
     return render_template('bestpractice.html', results=results, search=search,
-                           type_filter=type_filter, types=types)
+                           type_filter=type_filter, types=types, active_page='bestpractice')
 
 @app.route('/datavis')
 def datavis():
@@ -210,10 +210,6 @@ def signatories():
     entries = cursor.fetchall()
     conn.close()
     return render_template('signatories.html', active_page='signatories', signatories=entries)
-
-@app.route('/tbd')
-def tbd():
-    return render_template('tbd.html', active_page='tbd')
 
 @app.route('/thank-you')
 def thankyou():
@@ -335,7 +331,7 @@ def _list_exports():
     return files
 
 @app.route("/downloads")
-def downloads_index():
+def downloads():
     files = _list_exports()
     # Show “featured” latests first if present
     featured = [f for f in files if f["name"] in (
@@ -344,7 +340,7 @@ def downloads_index():
     )]
     # The rest (history)
     rest = [f for f in files if f not in featured]
-    return render_template("downloads.html", featured=featured, files=rest)
+    return render_template("downloads.html", active_page='downloads', featured=featured, files=rest)
 
 @app.route("/download/<path:filename>")
 def download_file(filename):

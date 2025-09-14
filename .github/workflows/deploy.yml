@@ -38,6 +38,10 @@ jobs:
               echo "DB_NAME=${{ secrets.DB_NAME }}"
               echo "DB_USER=${{ secrets.DB_USER }}"
               echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+              echo "BLUESKY_HANDLE=${{ secrets.BLUESKY_HANDLE }}"
+              echo "BLUESKY_APP_PASSWORD=${{ secrets.BLUESKY_APP_PASSWORD }}"
+              echo "GATEKEEP_PASSWORD=${{ secrets.GATEKEEP_PASSWORD }}"
+              echo "FLASK_SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}"
               echo "YT_API_KEY=${{ secrets.YT_API_KEY }}"
               echo "MPLBACKEND=Agg"
             } > .env

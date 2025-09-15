@@ -1,5 +1,5 @@
 # UKGovComms – Repository Overview
-_Generated: 2025-09-14 01:06_
+_Generated: 2025-09-15 22:59_
 
 This document was generated automatically by `tools/generate_repo_docs.py`.
 
@@ -17,9 +17,7 @@ This document was generated automatically by `tools/generate_repo_docs.py`.
 ## Command-line tools (`tools/`)
 | Script | Description | Notable flags |
 |---|---|---|
-| `build_source_exports.py` | Export data for all kinds in Source into a single ZIP. | `--include-disabled` `--keep` `--max-age-days` |
-| `export_govuk_blogs.py` | Export the GOV.UK blogs directory to CSV (and optionally DB). | `--log-level` `--out` `--write-db` |
-| `export_sources_csv.py` | Export Source table to CSV | `--enabled` `--kind` `--log-level` `--out` |
+| `build_data_export.py` | Build all UKGovComms export ZIPs | `--include-blogs` `--keep` `--log-level` `--outdir` |
 | `fetch_blogs_from_db.py` | Fetch blog posts into DB. | `--force` `--log-level` `--max-posts` `--only-host` `--sleep` `--start-url` |
 | `fetch_youtube_videos.py` | Fetch YouTube videos for Source(kind='YouTube'). | `--dry-run` `--log-level` `--max` `--only-channel-id` `--only-name` `--only-source-id` `--only-url` `--playlists-limit` `--playlists-only` `--since` `--sleep` `--uploads-only` |
 | `generate_repo_docs.py` | Generate a Markdown overview of the repository. | `--log-level` `--out` `--root` |
@@ -31,7 +29,10 @@ This document was generated automatically by `tools/generate_repo_docs.py`.
 | `yt_backfill_channel_ids.py` | — | — |
 
 ### Legacy (`tools/legacy/`)
+- `build_source_exports.py` — Build ZIP export for Source, BlogPost, and YouTubeVideo.
 - `crawl_blog.py` — Crawl all posts for a *.blog.gov.uk site by following the left-arrow (previous) link.
+- `export_govuk_blogs.py` — Export the GOV.UK blogs directory to CSV (and optionally DB).
+- `export_sources_csv.py` — Export Source table to CSV
 - `plot_blog_frequency.py` — Plot monthly counts and rolling average for a GOV.UK blog from BlogPost.
 - `wordcloud_gds_blog.py` — Create a word cloud from GDS blog post titles.
 
@@ -63,11 +64,10 @@ This document was generated automatically by `tools/generate_repo_docs.py`.
 | `/bestpractice` | GET | `bestpractice` | — |
 | `/datavis` | GET | `datavis` | — |
 | `/download/<path:filename>` | GET | `download_file` | — |
-| `/downloads` | GET | `downloads_index` | — |
+| `/downloads` | GET | `downloads` | — |
 | `/gate` | GET, POST | `gate` | — |
 | `/signatories` | GET | `signatories` | — |
 | `/silent-pebble-echo` | GET | `admin` | — |
-| `/tbd` | GET | `tbd` | — |
 | `/thank-you` | GET | `thankyou` | — |
 
 ## Notable files

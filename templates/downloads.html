@@ -4,25 +4,51 @@
   <h1>Downloads</h1>
   <p>Grab the latest dataset snapshots as ZIP files. These contain CSVs grouped by source type (e.g. Blogs; later: YouTube).</p>
 
-  {% if featured %}
+  {# --- Normalise inputs: ensure we have lists --- #}
+  {% set featured_files = (featured or []) %}
+  {% set files_list = (files or []) %}
+
+  {# --- Auto-detect any "*-latest.zip" that slipped into files_list and move to featured_files --- #}
+  {% set ns = namespace(featured=featured_files, archive=[]) %}
+  {% for f in files_list %}
+    {% set n = f.name if f.name is defined else f["name"] %}
+    {% if n.endswith("-latest.zip") or n.endswith("-latest.sql.gz") %}
+      {% if f not in ns.featured %}
+        {% set ns.featured = ns.featured + [f] %}
+      {% endif %}
+    {% else %}
+      {% set ns.archive = ns.archive + [f] %}
+    {% endif %}
+  {% endfor %}
+
+  {# --- LATEST SECTION --- #}
+  {% if ns.featured and ns.featured|length > 0 %}
     <h2>Latest</h2>
     <ul>
-      {% for f in featured %}
+      {% for f in ns.featured %}
+        {% set n = f.name if f.name is defined else f["name"] %}
+        {% set s = f.size if f.size is defined else f["size"] %}
+        {% set m = f.mtime if f.mtime is defined else f["mtime"] %}
         <li>
-          <a href="{{ url_for('download_file', filename=f.name) }}">{{ f.name }}</a>
-          — {{ (f.size/1024/1024)|round(2) }} MB • updated {{ f.mtime }}
+          <a href="{{ url_for('download_file', filename=n) }}">{{ n }}</a>
+          — {{ (s/1024/1024)|round(2) }} MB • updated {{ m }}
         </li>
       {% endfor %}
     </ul>
+  {% else %}
+    <p><em>No latest exports yet.</em></p>
   {% endif %}
 
   <h2>Archive</h2>
-  {% if files %}
+  {% if ns.archive and ns.archive|length > 0 %}
     <ul>
-      {% for f in files %}
+      {% for f in ns.archive %}
+        {% set n = f.name if f.name is defined else f["name"] %}
+        {% set s = f.size if f.size is defined else f["size"] %}
+        {% set m = f.mtime if f.mtime is defined else f["mtime"] %}
         <li>
-          <a href="{{ url_for('download_file', filename=f.name) }}">{{ f.name }}</a>
-          — {{ (f.size/1024/1024)|round(2) }} MB • {{ f.mtime }}
+          <a href="{{ url_for('download_file', filename=n) }}">{{ n }}</a>
+          — {{ (s/1024/1024)|round(2) }} MB • {{ m }}
         </li>
       {% endfor %}
     </ul>

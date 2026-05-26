@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Upload repository to server
         uses: appleboy/scp-action@v1.0.0
@@ -24,7 +24,7 @@ jobs:
           overwrite: true
 
       - name: Create .env on server
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -47,7 +47,7 @@ jobs:
             } > .env
 
       - name: Install dependencies on server (in-repo venv)
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
@@ -61,7 +61,7 @@ jobs:
             ./.venv/bin/pip install -r requirements.txt
 
       - name: Restart ukgovcomms service
-        uses: appleboy/ssh-action@v1.2.2
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}

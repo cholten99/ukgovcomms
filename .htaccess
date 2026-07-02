@@ -1,0 +1,12 @@
+# Deny access to dotfiles (.env, .git*, .htpasswd, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Deny access to the .git directory and its contents
+RedirectMatch 404 "^/\.git($|/)"
+
+# Deny access to common secret/backup/data file types
+<FilesMatch "\.(env|log|bak|old|swp|sqlite3?|db|pem|key)$">
+    Require all denied
+</FilesMatch>

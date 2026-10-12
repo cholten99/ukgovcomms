@@ -350,12 +350,6 @@ def get_sources(conn, only_host=None):
             """)
         return cur.fetchall()
 
-def blogpost_exists(conn, url: str):
-    with conn.cursor() as cur:
-        cur.execute("SELECT id FROM BlogPost WHERE url=%s", (url,))
-        row = cur.fetchone()
-        return row["id"] if row else None
-
 def upsert_blogpost(conn, blog_name: str, url: str, title: str, published_at):
     """Insert new or update existing BlogPost row for this URL."""
     with conn.cursor() as cur:

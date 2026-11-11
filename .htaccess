@@ -7,6 +7,11 @@
 RedirectMatch 404 "^/\.git($|/)"
 
 # Deny access to common secret/backup/data file types
-<FilesMatch "\.(env|log|bak|old|swp|sqlite3?|db|pem|key)$">
+<FilesMatch "\.(env|log|bak|old|orig|save|swp|sql|sqlite3?|db|pem|key)$">
+    Require all denied
+</FilesMatch>
+
+# ...and dated or numbered copies of them (wp-config.php.bak-20260705, dump.sql.gz, x.old.1)
+<FilesMatch "\.(bak|old|orig|save|sql)[-._~]">
     Require all denied
 </FilesMatch>
